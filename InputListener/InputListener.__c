@@ -3,6 +3,7 @@ Active Directory=C:\Dev\GitHub\HammerPong\InputListener\
 Target=PIC16F1825
 Active Compiler=BoostC
 Active Config=Debug
+Config=1
 [Files]
 Count=1
 File0=InputListener.c
