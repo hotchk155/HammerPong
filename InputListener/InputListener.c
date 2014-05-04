@@ -1,33 +1,40 @@
+//////////////////////////////////////////////////////////////////////////
+//
+// Input Listener
+// Code for PIC16F1825
+// SourceBoost C
+// hotchk155/2014
+//
+// Monitors two analog inputs, sending MIDI note triggers with velocity
+// depending on highest input level after a threshold is crossed.
+//
+//////////////////////////////////////////////////////////////////////////
+
 #include <system.h>
-#include <memory.h>
 
+typedef unsigned char byte;
 
+// PIC CONFIG
 #pragma DATA _CONFIG1, _FOSC_INTOSC & _WDTE_OFF & _MCLRE_OFF &_CLKOUTEN_OFF
 #pragma DATA _CONFIG2, _WRT_OFF & _PLLEN_OFF & _STVREN_ON & _BORV_19 & _LVP_OFF
 #pragma CLOCK_FREQ 16000000
 
-#define ADC_AQUISITION_DELAY 10
+#define ADC_AQUISITION_DELAY 		20		// clock ticks on timer2 to allow for input settling
+											// after switching to a different analog input port
 
-#define TIMER_2_INIT_SCALAR		5	// Timer 2 is an 8 bit timer counting at 250kHz
-									// using this init scalar means that rollover
-									// interrupt fires once per ms
+#define TIMER_0_INIT_SCALAR			5		// Timer 0 is an 8 bit timer counting at 250kHz
+											// using this init scalar means that rollover
+											// interrupt fires once per ms
 
-#define P_TRIG 		portc.1
-#define P_HEARTBEAT 		portc.2
-#define NUM_INPUT_PORTS 	1
-#define TRIGGER_THRESHOLD 	200		// lowest ADC level that is considered a trigger
-#define INPUT_SAMPLE_TIME	30			// milliseconds
-#define INPUT_DEAD_TIME		300			// milliseconds
+#define P_HEARTBEAT 				portc.0	// Hearbeat LED connection
+#define HEARTBEAT_PERIOD			500		// Milliseconds between toggles of heartbeat LED
 
-typedef unsigned char byte;
-
-// ADC states
-enum {
-	ADC_CONNECT,
-	ADC_ACQUIRE,
-	ADC_CONVERT				
-};
-
+#define INPUT_TRIGGER_THRESHOLD 	100		// lowest ADC level that is considered a trigger
+#define INPUT_SAMPLE_TIME			50		// milliseconds period after triggering where we sample for highest level
+#define INPUT_DEAD_TIME				300		// milliseconds period to wait after sending note message before listening again
+#define INPUT_MAX_LEVEL				750		// LM358 op amp max output on 5V = ~3.8V
+											// 1024 * (3.8 / 5.0) - 1 = 777. Reduced to ensure highest reading is possible
+										
 // Enumerate the control bit combinations for
 // reading each analog input port 
 enum {
@@ -41,27 +48,39 @@ enum {
 	ANA_7=(byte)0b00011100
 };
 
-////////////////////////////////////////////////////////////
-// INPUT TRIGGER STRUCTURE
+// ADC states
+enum {
+	ADC_CONNECT,							// connect to a new analog input
+	ADC_ACQUIRE,							// connected to a new analog input, allowing settling time
+	ADC_CONVERT								// waiting for conversion to complete
+};
+
+// Input state machine states
+enum {
+	INPUT_LISTENING,	// Ready to be triggered
+	INPUT_SAMPLING,		// Triggered, reading max input level
+	INPUT_BLOCKED		// Event has been reported, now we hold off for a bit
+};
+
+// Information associated with each input
 typedef struct 
 {
-	byte adcInputMask;		// PIC analog input port mask
-	byte midiChannel;		// MIDI channel on which to notify this trigger
-	byte midiNote;			// MIDI note on which to notify this trigger
-	int triggerThreshold;	// Lowest valid ADC level
-	int maxLevel;			// Highest valid ADC level
-	int thisMaxInput;
-	unsigned long endOfSampleTime;	// End of sample time period
-	unsigned long endOfDeadTime;	// End of dead time period
+	byte adcInputMask;			// PIC analog input port mask
+	byte midiChannel;			// MIDI channel on which to notify this trigger
+	byte midiNote;				// MIDI note on which to notify this trigger
+	byte ledBit;				// LED bit on port C
+	byte state;					// Input state
+	unsigned int thisMaxInput;	// Max ADC input on this trigger cycle
+	unsigned long timeout;		// Timeout at which to move to next state
 } INPUT_PORT;
 
-
+// Set of inputs
+#define NUM_INPUT_PORTS 2					// number of inputs to define
 INPUT_PORT inputPort[NUM_INPUT_PORTS];		// input port data
 byte whichInputPort = 0;					// iterator of input ports
 int adcState = ADC_CONNECT;					// master adc state machine state
-volatile unsigned long milliseconds = 0;	// milliseconds counter
+volatile unsigned long milliseconds = 0;	// milliseconds counter updated by timer 0
 volatile byte millisecondsRollover = 0;		// flag to say if milliseconds have rolled over
-
 
 ////////////////////////////////////////////////////////////
 // INTERRUPT HANDLER 
@@ -71,8 +90,7 @@ void interrupt( void )
 	// timer 0 rollover ISR. Counts ms ticks
 	if(intcon.2)
 	{
-		tmr0 = TIMER_2_INIT_SCALAR;
-		++milliseconds;
+		tmr0 = TIMER_0_INIT_SCALAR;
 		if(!++milliseconds)
 			millisecondsRollover = 1; // make sure we know if the ms counter overflows
 		intcon.2 = 0;
@@ -129,64 +147,75 @@ void midiNote(byte chan, byte note, byte vel)
 
 ////////////////////////////////////////////////////////////
 // INITIALISE PORT DATA
-void initInput(INPUT_PORT *pInput, byte inputMask, byte chan, byte note)
+void initInput(INPUT_PORT *pInput, byte inputMask, byte chan, byte note, byte ledBit)
 {
 	pInput->adcInputMask = inputMask;
 	pInput->midiChannel = chan;
 	pInput->midiNote = note;
-	pInput->triggerThreshold = TRIGGER_THRESHOLD;
-	pInput->maxLevel = 1023;
-	pInput->endOfDeadTime = 0;
-	pInput->endOfSampleTime = 0;
+	pInput->ledBit = ledBit;
+	pInput->state = INPUT_LISTENING;
+	pInput->timeout = 0;
 }
 
 ////////////////////////////////////////////////////////////
 // INPUT PORT ADC DATA HANDLER
-void handleAdcResult(INPUT_PORT *pInput, int adcResult)
+void handleAdcResult(INPUT_PORT *pInput, unsigned int adcResult)
 {
-
-	// are we waiting following previous trigger?
-	if(pInput->endOfSampleTime) 
+	switch(pInput->state)
 	{
+	// waiting for another trigger
+	case INPUT_LISTENING:	
+		if(adcResult >= INPUT_TRIGGER_THRESHOLD)
+		{	
+			// crossed threshold, start the trigger cycle
+			pInput->thisMaxInput = adcResult;		
+			pInput->timeout = milliseconds + INPUT_SAMPLE_TIME;
+			pInput->state = INPUT_SAMPLING;
+		}	
+		break;
+		
+	// input has been triggered, now we listen for the sampling period,
+	// taking and using the highest input reading
+	case INPUT_SAMPLING:
 		if(adcResult > pInput->thisMaxInput)
 			pInput->thisMaxInput = adcResult;
-		if(milliseconds >= pInput->endOfSampleTime)		
+		if(milliseconds >= pInput->timeout)		
 		{
-			// calculate the MIDI velocity for the hit
-			long velocity = 127 * (pInput->thisMaxInput - pInput->triggerThreshold);
-			velocity /= (pInput->maxLevel - pInput->triggerThreshold);
+			// end of sampling - calculate the MIDI velocity for the trigger
+			int velocity = (127 * (long)pInput->thisMaxInput) / INPUT_MAX_LEVEL;
 			if(velocity > 127)
 				velocity = 127;
-			if(velocity > 0)
+			if(velocity <= 0)
 			{
+				// too low, ignore it
+				pInput->state = INPUT_LISTENING;				
+			}
+			else
+			{			
 				// play the MIDI note
 				midiNote(pInput->midiChannel, pInput->midiNote, (byte)velocity);
-				P_TRIG = 1;
-			
-			}			
-			
-			// set up dead time			
-			pInput->endOfSampleTime = 0;
-			pInput->endOfDeadTime = milliseconds + INPUT_DEAD_TIME;
+				
+				// turn on the LED
+				portc |= pInput->ledBit;
+				
+				// set up dead time			
+				pInput->timeout = milliseconds + INPUT_DEAD_TIME;
+				pInput->state = INPUT_BLOCKED;
+			}
 		}		
-	}
-	else if(pInput->endOfDeadTime) 
-	{
-		// if we have waited long enough then clear the dead time
-		if(milliseconds > pInput->endOfDeadTime)
+		break;
+		
+	// Holding off after a trigger, we block for a specified period of time
+	// before going back to listening for another trigger
+	case INPUT_BLOCKED:
+		if(milliseconds >= pInput->timeout)		
 		{
 			midiNote(pInput->midiChannel, pInput->midiNote, 0);
-			pInput->endOfDeadTime = 0;
-			P_TRIG = 0;
+			pInput->state = INPUT_LISTENING;
+			portc &= ~pInput->ledBit;
 		}
+		break;
 	}
-	// otherwise see if the input is above the trigger threshold
-	else if(adcResult >= pInput->triggerThreshold)
-	{	
-		pInput->endOfSampleTime = milliseconds + INPUT_SAMPLE_TIME;
-		pInput->endOfDeadTime = 0;
-		pInput->thisMaxInput = adcResult;		
-	}	
 }
 
 ////////////////////////////////////////////////////////////
@@ -228,17 +257,17 @@ void runInputs()
 	}			
 }
 
-
+////////////////////////////////////////////////////////////
+// MAIN 
 void main()
 { 
 	int i;
+	unsigned long nextHeartbeat = 0;
 	
 	// osc control / 16MHz / internal
 	osccon = 0b01111010;
 	
 	// configure io
-	//apfcon0.7=0;  // usart rx on rc5
-	//apfcon0.2=0;  // usart tx on rc4
 	trisa =  0b00010111;              	
     trisc =  0b00111000;              
 	ansela = 0b00010111;
@@ -263,40 +292,43 @@ void main()
 	intcon.6 = 1;	  // PEIE
 	
 	// Configure timer 2 (used to time ADC acquisition)
-	t2con = 0b00000110;
+	t2con = 0b00000110; //fosc/16
 	      	      
 	// turn on the ADC
 	adcon0=0b00000001; //AD on
-	adcon1=0b10100000; //right justify, fosc/32, Vss
+	adcon1=0b11010000; //right justify, fosc/16, Vss
 	
 	// initialise MIDI comms
 	init_usart();
 
-	initInput(&inputPort[0], ANA_3, 0, 60);
+	// initialise the inputs
+	initInput(&inputPort[0], ANA_3, 0, 60, (1<<1));
+	initInput(&inputPort[1], ANA_7, 0, 61, (1<<2));
 	adcState = ADC_CONNECT;
 	whichInputPort = 0;					
-
-	P_TRIG=0;
 	
-	// main loop
+	// forever...
 	for(;;)
 	{
-		P_HEARTBEAT = !!(milliseconds & 0x100);
+		// Toggle the heartbeat
+		if(milliseconds >= nextHeartbeat)
+		{
+			P_HEARTBEAT = !P_HEARTBEAT;
+			nextHeartbeat = milliseconds + HEARTBEAT_PERIOD;
+		}
 
+		// Check if the millisecond counter has rolled over
 		if(millisecondsRollover)
 		{			
-			// ensure that if there is a roll over of the millisecond
-			// counter then inputs cannot get jammed into their dead
-			// time
+			// Ensure that we are not waiting on a ms timeout
+			// since this could block until the timer rolls again!
 			for(int i = 0; i<NUM_INPUT_PORTS; ++i)
-			{
-				inputPort[i].endOfSampleTime = 0;
-				inputPort[i].endOfDeadTime = 0;
-			}
+				inputPort[i].state = INPUT_LISTENING;
+			nextHeartbeat = 0;
 			millisecondsRollover = 0;
 		}
 		
-		// process ADC inputs
+		// Run the input state machine
 		runInputs();
 	}
 }
