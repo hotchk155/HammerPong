@@ -1,19 +1,51 @@
- #include <Arduino.h>
+#include <Arduino.h>
+
+#define PIX_LENGTH 150
+#define PIX_BUFSSIZE (3 * PIX_LENGTH)
+#define PIX_NUMBUFFERS 3
+byte pixBuffer[PIX_NUMBUFFERS][PIX_BUFSSIZE];
+
+#define P_STRIP0 5
+#define P_STRIP1 6
+#define P_STRIP2 7
+#define P_STRIP3 36
+#define P_STRIP4 37
+#define P_STRIP5 38
+#define P_HEARTBEAT 13
+
+uint32_t endTime;
+void pixInit()
+{
+  pinMode(P_STRIP0, OUTPUT);
+  pinMode(P_STRIP1, OUTPUT);
+  pinMode(P_STRIP2, OUTPUT);
+  pinMode(P_STRIP3, OUTPUT);
+  pinMode(P_STRIP4, OUTPUT);
+  pinMode(P_STRIP5, OUTPUT);
+
+  pinMode(P_HEARTBEAT, OUTPUT);
+  
+  digitalWrite(P_STRIP0, LOW);
+  digitalWrite(P_STRIP1, LOW);
+  digitalWrite(P_STRIP2, LOW);
+  digitalWrite(P_STRIP3, LOW);
+  digitalWrite(P_STRIP4, LOW);
+  digitalWrite(P_STRIP5, LOW);
+  digitalWrite(P_HEARTBEAT, LOW);
+  
+  memset(pixBuffer, 77, PIX_NUMBUFFERS * PIX_BUFSSIZE);
+  endTime = 0;
+}
 
 
 
+/*
 // 'type' flags for LED pixels (third parameter to constructor):
 #define NEO_RGB     0x00 // Wired for RGB data order
 #define NEO_GRB     0x01 // Wired for GRB data order
 #define NEO_COLMASK 0x01
 #define NEO_KHZ800  0x02 // 800 KHz datastream
 #define NEO_SPDMASK 0x02
-// Trinket flash space is tight, v1 NeoPixels aren't handled by default.
-// Remove the ifndef/endif to add support -- but code will be bigger.
-// Conversely, can comment out the #defines to save space on other MCUs.
-#ifndef __AVR_ATtiny85__
-#define NEO_KHZ400  0x00 // 400 KHz datastream
-#endif
 
 class Adafruit_NeoPixel {
 
@@ -90,10 +122,9 @@ void Adafruit_NeoPixel::begin(void) {
   pinMode(pin, OUTPUT);
   digitalWrite(pin, LOW);
 }
-
-void Adafruit_NeoPixel::show(void) {
-
-  if (!pixels) return;
+*/
+void pixRefresh()
+{
 
   // Data latch = 50+ microsecond pause in the output stream.  Rather than
   // put a delay at the end of the function, the ending time is noted and
@@ -126,79 +157,86 @@ void Adafruit_NeoPixel::show(void) {
 #define TIME_800_1 ((int)(0.80 * SCALE + 0.5) - (5 * INST))
 #define PERIOD_800 ((int)(1.25 * SCALE + 0.5) - (5 * INST))
 
-  int             pinMaskA, pinMaskB, pinMaskC, time0, time1, period, t;
-  Pio            *port;
-  volatile WoReg *portSet, *portClear, *timeValue, *timeReset;
-  uint8_t        *p, *end, pix, mask;
-
   pmc_set_writeprotect(false);
   pmc_enable_periph_clk((uint32_t)TC3_IRQn);
-  TC_Configure(TC1, 0,
-               TC_CMR_WAVE | TC_CMR_WAVSEL_UP | TC_CMR_TCCLKS_TIMER_CLOCK1);
+  TC_Configure(TC1, 0, TC_CMR_WAVE | TC_CMR_WAVSEL_UP | TC_CMR_TCCLKS_TIMER_CLOCK1);
   TC_Start(TC1, 0);
+int t0 = TIME_800_0;
+int t1 = TIME_800_1;
+int period = PERIOD_800;
 
-  pinMaskA   = g_APinDescription[5].ulPin; // Don't 'optimize' these into
-  pinMaskB   = g_APinDescription[6].ulPin; // Don't 'optimize' these into
-  pinMaskC   = g_APinDescription[7].ulPin; // Don't 'optimize' these into
-  port      = g_APinDescription[pin].pPort; // declarations above.  Want to
-  portSet   = &(port->PIO_SODR);            // burn a few cycles after
-  portClear = &(port->PIO_CODR);            // starting timer to minimize
-  timeValue = &(TC1->TC_CHANNEL[0].TC_CV);  // the initial 'while'.
-  timeReset = &(TC1->TC_CHANNEL[0].TC_CCR);
-  p         =  pixels;
-  end       =  p + numBytes;
-  pix       = *p++;
-  mask      = 0x80;
+  // get port address...
+  // Note: all the pins need to be on same port reg
+  Pio *port      = g_APinDescription[P_STRIP0].pPort; 
+  
+  // Get register addresses
+  volatile WoReg *portSet   = &(port->PIO_SODR);            
+  volatile WoReg *portClear = &(port->PIO_CODR);            
+  volatile WoReg *timeValue = &(TC1->TC_CHANNEL[0].TC_CV);  
+  volatile WoReg *timeReset = &(TC1->TC_CHANNEL[0].TC_CCR);
 
-  time0 = TIME_800_0;
-  time1 = TIME_800_1;
-  period = PERIOD_800;
 
   int index = 0;
-  while(index < 450)  
-  {              
-    uint8_t colourValue = pixels[index];
+  int pinMask0 = g_APinDescription[P_STRIP0].ulPin; 
+  int pinMask1 = g_APinDescription[P_STRIP1].ulPin; 
+  int pinMask2 = g_APinDescription[P_STRIP2].ulPin; 
+  int pinMask3 = g_APinDescription[P_STRIP3].ulPin; 
+  int pinMask4 = g_APinDescription[P_STRIP4].ulPin; 
+  int pinMask5 = g_APinDescription[P_STRIP5].ulPin; 
+
+  int phase0 = pinMask0|pinMask1|pinMask2|pinMask3|pinMask4|pinMask5;
+  while(index < PIX_BUFSSIZE)  
+  {          
+    // Fetch all six colour byte values
+//    byte colourValue0 = pixBuffer[0][index];
+//    byte colourValue1 = pixBuffer[1][index];
+//    byte colourValue2 = pixBuffer[2][index];
+//    byte colourValue3 = pixBuffer[3][index];
+//    byte colourValue4 = pixBuffer[4][index];
+//    byte colourValue5 = pixBuffer[5][index];
+
+uint8_t colourValue0=77;
+if(index&1)colourValue0=0;
+uint8_t colourValue1=1;
+uint8_t colourValue2=1;
+//colourValue3=1;
+//colourValue4=1;
+//colourValue5=1;
     uint8_t bitMask = 0x80;
     while(bitMask)
     {    
-      // set outputs high
-      *portSet   = pinMaskA;
-      *portSet   = pinMaskB;
-      *portSet   = pinMaskC;
-  
-      // reset the timer
+      int phase1 = phase0; // 111111
+      if(colourValue0 & bitMask) phase1 ^= pinMask0; 
+      if(colourValue0 & bitMask) phase1 ^= pinMask1; 
+      if(colourValue0 & bitMask) phase1 ^= pinMask2; 
+      int phase2 = phase0 ^ phase1; 
+      
+      while (*timeValue < period);    
+      
+      // set all outputs high
+      *portSet   = phase0;
       *timeReset = TC_CCR_CLKEN | TC_CCR_SWTRG;
+      while (*timeValue < t0);
+      *portClear = phase1;
+      while (*timeValue < t1);
+      *portClear = phase2;
   
-      // get the high cycle time
-      t = time0;
-      if (colourValue & bitMask) 
-        t = time1;    
-      
-      // Wait until the high time period has elapsed
-      while (*timeValue < t);
-      
-      // Set outputs low
-      *portClear = pinMaskA;
-      *portClear = pinMaskB;
-      *portClear = pinMaskC;
-      
       // shift the bit mask
       bitMask >>= 1;
-
-      // Wait until the low time has elapsed
-      while (*timeValue < period);    
     }
     
     // next byte;
     ++index;
     
   }
+  while (*timeValue < period);    
   TC_Stop(TC1, 0);
 
   interrupts();
   endTime = micros(); // Save EOD time for latch on next call
 }
 
+/*
 // Set the output pin number
 void Adafruit_NeoPixel::setPin(uint8_t p) {
   pinMode(pin, INPUT);
@@ -326,7 +364,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(150, PIN, NEO_GRB + NEO_KHZ800);
 // pixel power leads, add 300 - 500 Ohm resistor on first pixel's data input
 // and minimize distance between Arduino and first pixel.  Avoid connecting
 // on a live circuit...if you must, connect GND first.
-
+*/
 
 typedef struct 
 {
@@ -414,16 +452,19 @@ void puckRender(int col, int y, byte *pixels)
   }
 }
 
-void setup() {
-  pinMode(5,OUTPUT);
-  pinMode(7,OUTPUT);
-  strip.begin();
-  strip.show(); // Initialize all pixels to 'off'
-// initBlobs();
+void setup() {  
+  pixInit();
 }
 //int puckY=0;
-void loop() {
-  
+int q=0;
+void loop() 
+{
+  digitalWrite(P_HEARTBEAT,!!q);
+  q=!q;
+  pixRefresh();
+  delay(1);  
+}
+/*  
   // Some example procedures showing how to display to the pixels:
   colorWipe(strip.Color(255, 0, 0), 50); // Red
   colorWipe(strip.Color(0, 255, 0), 50); // Green
@@ -436,8 +477,10 @@ void loop() {
   rainbow(20);
   rainbowCycle(20);
   theaterChaseRainbow(50);
-}
+*/  
 
+
+/*
 // Fill the dots one after the other with a color
 void colorWipe(uint32_t c, uint8_t wait) {
   for(uint16_t i=0; i<strip.numPixels(); i++) {
@@ -521,4 +564,4 @@ uint32_t Wheel(byte WheelPos) {
    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
   }
 }
-
+*/
