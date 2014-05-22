@@ -1,8 +1,3 @@
-/*
-  This version of the Neopixel library has been modified to enable 
-  active low output (for going via inverting multiplexer)
-*/
-
 /*-------------------------------------------------------------------------
   Arduino library to control a wide variety of WS2811- and WS2812-based RGB
   LED devices such as Adafruit FLORA RGB Smart Pixels and NeoPixel strips.
@@ -42,8 +37,7 @@ Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, uint8_t p, uint8_t t) : numLEDs
   ,type(t)
 #ifdef __AVR__
   ,port(portOutputRegister(digitalPinToPort(p))),
-   pinMask(digitalPinToBitMask(p)),
-   activeLow(1)
+   pinMask(digitalPinToBitMask(p))
 #endif
 {
   if((pixels = (uint8_t *)malloc(numBytes))) {
@@ -66,7 +60,7 @@ Adafruit_NeoPixel::~Adafruit_NeoPixel() {
 
 void Adafruit_NeoPixel::begin(void) {
   pinMode(pin, OUTPUT);
-  digitalWrite(pin, activeLow? HIGH: LOW);
+  digitalWrite(pin, LOW);
 }
 
 void Adafruit_NeoPixel::show(void) {
@@ -79,7 +73,7 @@ void Adafruit_NeoPixel::show(void) {
   // subsequent round of data until the latch time has elapsed.  This
   // allows the mainline code to start generating the next frame of data
   // rather than stalling for the latch.
-//  while((micros() - endTime) < 50L);
+  while((micros() - endTime) < 50L);
   // endTime is a private member (rather than global var) so that mutliple
   // instances on different pins can be quickly issued in succession (each
   // instance doesn't delay the next).
@@ -147,16 +141,8 @@ void Adafruit_NeoPixel::show(void) {
 
     if(port == &PORTD) {
 
-        if(activeLow)
-        {
-          lo = PORTD |  pinMask;
-          hi = PORTD & ~pinMask;
-        }
-        else
-        {
-          hi = PORTD |  pinMask;
-          lo = PORTD & ~pinMask;
-        }
+      hi = PORTD |  pinMask;
+      lo = PORTD & ~pinMask;
       n1 = lo;
       if(b & 0x80) n1 = hi;
 
@@ -254,16 +240,8 @@ void Adafruit_NeoPixel::show(void) {
 #endif // PORTD
 
       // Same as above, just switched to PORTB and stripped of comments.
-      if(activeLow)
-      {
-        lo = PORTB |  pinMask;
-        hi = PORTB & ~pinMask;
-      }
-      else
-      {
-        hi = PORTB |  pinMask;
-        lo = PORTB & ~pinMask;
-      }
+      hi = PORTB |  pinMask;
+      lo = PORTB & ~pinMask;
       n1 = lo;
       if(b & 0x80) n1 = hi;
 
@@ -356,16 +334,8 @@ void Adafruit_NeoPixel::show(void) {
 
     volatile uint8_t next, bit;
 
-    if(activeLow)
-    {
-        hi   = *port |  pinMask;
-        lo   = *port & ~pinMask;
-    }
-    else
-    {
-        lo   = *port |  pinMask;
-        hi   = *port & ~pinMask;
-    }
+    hi   = *port |  pinMask;
+    lo   = *port & ~pinMask;
     next = lo;
     bit  = 8;
 
@@ -422,16 +392,8 @@ void Adafruit_NeoPixel::show(void) {
 
     if(port == &PORTD) {
 
-      if(activeLow)
-      {
-        lo   = PORTD |  pinMask;
-        hi   = PORTD & ~pinMask;
-      }
-      else
-      {
-        hi   = PORTD |  pinMask;
-        lo   = PORTD & ~pinMask;
-      }
+      hi   = PORTD |  pinMask;
+      lo   = PORTD & ~pinMask;
       next = lo;
       if(b & 0x80) next = hi;
 
@@ -488,16 +450,8 @@ void Adafruit_NeoPixel::show(void) {
 
 #endif // PORTD
 
-      if(activeLow)
-      {
-        lo   = PORTB |  pinMask;
-        hi   = PORTB & ~pinMask;
-      }
-      else  
-      {
-        hi   = PORTB |  pinMask;
-        lo   = PORTB & ~pinMask;
-      }
+      hi   = PORTB |  pinMask;
+      lo   = PORTB & ~pinMask;
       next = lo;
       if(b & 0x80) next = hi;
 
@@ -556,16 +510,8 @@ void Adafruit_NeoPixel::show(void) {
 
     volatile uint8_t next, bit;
 
-    if(activeLow)
-    {
-        lo   = *port |  pinMask;
-        hi   = *port & ~pinMask;
-    }
-    else
-    {
-        hi   = *port |  pinMask;
-        lo   = *port & ~pinMask;
-    }
+    hi   = *port |  pinMask;
+    lo   = *port & ~pinMask;
     next = lo;
     bit  = 8;
 
@@ -621,18 +567,8 @@ void Adafruit_NeoPixel::show(void) {
 
     volatile uint8_t next, bit;
 
-    
-    if(activeLow)
-    {
-        lo   = *port |  pinMask;
-        hi   = *port & ~pinMask;
-    }
-    else
-    {
-        hi   = *port |  pinMask;
-        lo   = *port & ~pinMask;
-    }
-    
+    hi   = *port |  pinMask;
+    lo   = *port & ~pinMask;
     next = lo;
     bit  = 8;
 
@@ -678,16 +614,8 @@ void Adafruit_NeoPixel::show(void) {
 
     volatile uint8_t next, bit;
 
-    if(activeLow)
-    {
-        lo   = *port |  pinMask;
-        hi   = *port & ~pinMask;
-    }
-    else
-    {
-        hi   = *port |  pinMask;
-        lo   = *port & ~pinMask;
-    }
+    hi   = *port |  pinMask;
+    lo   = *port & ~pinMask;
     next = lo;
     bit  = 8;
 

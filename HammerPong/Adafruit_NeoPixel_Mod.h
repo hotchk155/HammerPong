@@ -1,8 +1,3 @@
-/*
-  This version of the Neopixel library has been modified to enable 
-  active low output (for going via inverting multiplexer)
-*/
-
 /*--------------------------------------------------------------------
   This file is part of the Adafruit NeoPixel library.
 
@@ -21,8 +16,8 @@
   <http://www.gnu.org/licenses/>.
   --------------------------------------------------------------------*/
 
-#ifndef ADAFRUIT_NEOPIXEL_MOD_H
-#define ADAFRUIT_NEOPIXEL_MOD_H
+#ifndef ADAFRUIT_NEOPIXEL_H
+#define ADAFRUIT_NEOPIXEL_H
 
 #if (ARDUINO >= 100)
  #include <Arduino.h>
@@ -89,11 +84,8 @@ class Adafruit_NeoPixel {
     *port;         // Output PORT register
   uint8_t
     pinMask;       // Output PORT bitmask
-uint8_t
-    activeLow;       // Output PORT bitmask    
 #endif
-
 
 };
 
-#endif // ADAFRUIT_NEOPIXEL_MOD_H
+#endif // ADAFRUIT_NEOPIXEL_H

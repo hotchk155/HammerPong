@@ -1,11 +1,6 @@
 #include "Adafruit_NeoPixel_Mod.h"
 
 #define PIN 6
-#define P_STRIP_A0 3
-#define P_STRIP_A1 4
-#define P_STRIP_A2 5
-
-byte *pixels;
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = Arduino pin number (most are valid)
 // Parameter 3 = pixel type flags, add together as needed:
@@ -20,41 +15,6 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(150, PIN, NEO_GRB + NEO_KHZ800);
 // and minimize distance between Arduino and first pixel.  Avoid connecting
 // on a live circuit...if you must, connect GND first.
 
-#define STRIP_MASK 0b00111000
-#define STRIP0_MASK (1<<3)
-#define STRIP1_MASK (1<<4)
-#define STRIP2_MASK 0
-
-void selectStrip(byte which)
-{
-  switch(which)
-  {
-    case 0:
-    PORTD &= ~STRIP_MASK;
-    PORTD |= STRIP0_MASK;
-    break;
-//      digitalWrite(P_STRIP_A0, HIGH);
-//      digitalWrite(P_STRIP_A1, LOW);
-//      digitalWrite(P_STRIP_A2, LOW);
-      break;
-    case 1:
-    PORTD &= ~STRIP_MASK;
-    PORTD |= STRIP1_MASK;
-    break;
-    
-//      digitalWrite(P_STRIP_A0, LOW);
-//      digitalWrite(P_STRIP_A1, HIGH);
-//      digitalWrite(P_STRIP_A2, LOW);
-      break;
-    case 2:
-    PORTD &= ~STRIP_MASK;
-    PORTD |= STRIP2_MASK;
-//      digitalWrite(P_STRIP_A0, LOW);
-//      digitalWrite(P_STRIP_A1, LOW);
-//      digitalWrite(P_STRIP_A2, LOW);
-      break;
-  }
-}
 
 typedef struct 
 {
@@ -108,7 +68,7 @@ void renderBlobs(int col, byte *pixels)
       if(p->y >= 0 && p->y < 149 )
       {
        
-       pixels[1+(3*(int)p->y)] = p->i;
+//       pixels[1+(3*(int)p->y)] = p->i;
       }
     }
   }
@@ -143,36 +103,15 @@ void puckRender(int col, int y, byte *pixels)
 }
 
 void setup() {
-  pinMode(P_STRIP_A0, OUTPUT);
-  pinMode(P_STRIP_A1, OUTPUT);
-  pinMode(P_STRIP_A2, OUTPUT);
-
+  pinMode(5,OUTPUT);
+  pinMode(7,OUTPUT);
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
- initBlobs();
+// initBlobs();
 }
-int puckY=0;
+//int puckY=0;
 void loop() {
   
-  //runBlobs(puckY);
-  pixels = strip.getPixels();
-  for(int col = 0; col < 1; ++col)
-  {
-    selectStrip(col);
-    memset(pixels, 0, 150*3);
-    //renderBlobs(col, pixels);
-    puckRender(col, puckY, pixels);
-    strip.show();
-  }
-//  ++puckY;
-  ++puckY;
-  if(puckY>149)puckY=0;
-//  delay(4);
-}
-  /*
-  for(int i=0; i<3; ++i)
-  {
-    selectStrip(i);
   // Some example procedures showing how to display to the pixels:
   colorWipe(strip.Color(255, 0, 0), 50); // Red
   colorWipe(strip.Color(0, 255, 0), 50); // Green
@@ -185,8 +124,7 @@ void loop() {
   rainbow(20);
   rainbowCycle(20);
   theaterChaseRainbow(50);
-  }
-}*/
+}
 
 // Fill the dots one after the other with a color
 void colorWipe(uint32_t c, uint8_t wait) {
