@@ -1,5 +1,7 @@
  #include <Arduino.h>
 
+
+
 // 'type' flags for LED pixels (third parameter to constructor):
 #define NEO_RGB     0x00 // Wired for RGB data order
 #define NEO_GRB     0x01 // Wired for GRB data order
@@ -62,40 +64,6 @@ class Adafruit_NeoPixel {
 
 };
 
-/*-------------------------------------------------------------------------
-  Arduino library to control a wide variety of WS2811- and WS2812-based RGB
-  LED devices such as Adafruit FLORA RGB Smart Pixels and NeoPixel strips.
-  Currently handles 400 and 800 KHz bitstreams on 8, 12 and 16 MHz ATmega
-  MCUs, with LEDs wired for RGB or GRB color order.  8 MHz MCUs provide
-  output on PORTB and PORTD, while 16 MHz chips can handle most output pins
-  (possible exception with upper PORT registers on the Arduino Mega).
-
-  Written by Phil Burgess / Paint Your Dragon for Adafruit Industries,
-  contributions by PJRC and other members of the open source community.
-
-  Adafruit invests time and resources providing this open source code,
-  please support Adafruit and open-source hardware by purchasing products
-  from Adafruit!
-
-  -------------------------------------------------------------------------
-  This file is part of the Adafruit NeoPixel library.
-
-  NeoPixel is free software: you can redistribute it and/or modify
-  it under the terms of the GNU Lesser General Public License as
-  published by the Free Software Foundation, either version 3 of
-  the License, or (at your option) any later version.
-
-  NeoPixel is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU Lesser General Public License for more details.
-
-  You should have received a copy of the GNU Lesser General Public
-  License along with NeoPixel.  If not, see
-  <http://www.gnu.org/licenses/>.
-  -------------------------------------------------------------------------*/
-
-#include "Adafruit_NeoPixel_Mod.h"
 
 Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, uint8_t p, uint8_t t) : numLEDs(n), numBytes(n * 3), pin(p), pixels(NULL)
   , type(t)
@@ -186,24 +154,45 @@ void Adafruit_NeoPixel::show(void) {
   time1 = TIME_800_1;
   period = PERIOD_800;
 
-  for (t = time0;; t = time0) {
-    if (pix & mask) t = time1;
-    while (*timeValue < period);
-    *portSet   = pinMaskA;
-    *portSet   = pinMaskB;
-    *portSet   = pinMaskC;
-    *timeReset = TC_CCR_CLKEN | TC_CCR_SWTRG;
-    while (*timeValue < t);
-    *portClear = pinMaskA;
-    *portClear = pinMaskB;
-    *portClear = pinMaskC;
-    if (!(mask >>= 1)) {  // This 'inside-out' loop logic utilizes
-      if (p >= end) break; // idle time to minimize inter-byte delays.
-      pix = *p++;
-      mask = 0x80;
+  int index = 0;
+  while(index < 450)  
+  {              
+    uint8_t colourValue = pixels[index];
+    uint8_t bitMask = 0x80;
+    while(bitMask)
+    {    
+      // set outputs high
+      *portSet   = pinMaskA;
+      *portSet   = pinMaskB;
+      *portSet   = pinMaskC;
+  
+      // reset the timer
+      *timeReset = TC_CCR_CLKEN | TC_CCR_SWTRG;
+  
+      // get the high cycle time
+      t = time0;
+      if (colourValue & bitMask) 
+        t = time1;    
+      
+      // Wait until the high time period has elapsed
+      while (*timeValue < t);
+      
+      // Set outputs low
+      *portClear = pinMaskA;
+      *portClear = pinMaskB;
+      *portClear = pinMaskC;
+      
+      // shift the bit mask
+      bitMask >>= 1;
+
+      // Wait until the low time has elapsed
+      while (*timeValue < period);    
     }
+    
+    // next byte;
+    ++index;
+    
   }
-  while (*timeValue < period); // Wait for last bit
   TC_Stop(TC1, 0);
 
   interrupts();
