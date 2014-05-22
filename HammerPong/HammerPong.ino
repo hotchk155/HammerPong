@@ -1,8 +1,11 @@
 #include "Adafruit_NeoPixel_Mod.h"
 
 #define PIN 6
-#define P_SELECT 7
+#define P_STRIP_A0 3
+#define P_STRIP_A1 4
+#define P_STRIP_A2 5
 
+byte *pixels;
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = Arduino pin number (most are valid)
 // Parameter 3 = pixel type flags, add together as needed:
@@ -17,35 +20,173 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(150, PIN, NEO_GRB + NEO_KHZ800);
 // and minimize distance between Arduino and first pixel.  Avoid connecting
 // on a live circuit...if you must, connect GND first.
 
-void setup() {
-  pinMode(P_SELECT, OUTPUT);
-
-  strip.begin();
-  strip.show(); // Initialize all pixels to 'off'
-}
+#define STRIP_MASK 0b00111000
+#define STRIP0_MASK (1<<3)
+#define STRIP1_MASK (1<<4)
+#define STRIP2_MASK 0
 
 void selectStrip(byte which)
 {
-  digitalWrite(P_SELECT, !!which);
+  switch(which)
+  {
+    case 0:
+    PORTD &= ~STRIP_MASK;
+    PORTD |= STRIP0_MASK;
+    break;
+//      digitalWrite(P_STRIP_A0, HIGH);
+//      digitalWrite(P_STRIP_A1, LOW);
+//      digitalWrite(P_STRIP_A2, LOW);
+      break;
+    case 1:
+    PORTD &= ~STRIP_MASK;
+    PORTD |= STRIP1_MASK;
+    break;
+    
+//      digitalWrite(P_STRIP_A0, LOW);
+//      digitalWrite(P_STRIP_A1, HIGH);
+//      digitalWrite(P_STRIP_A2, LOW);
+      break;
+    case 2:
+    PORTD &= ~STRIP_MASK;
+    PORTD |= STRIP2_MASK;
+//      digitalWrite(P_STRIP_A0, LOW);
+//      digitalWrite(P_STRIP_A1, LOW);
+//      digitalWrite(P_STRIP_A2, LOW);
+      break;
+  }
 }
+
+typedef struct 
+{
+  byte x;
+  byte c;
+  byte i;
+  float y;
+  float dy;
+} BLOB;
+#define MAX_BLOB 10
+BLOB blobs[MAX_BLOB];
+void initBlobs()
+{
+  memset(blobs,0,sizeof(blobs));
+}
+void runBlobs(int puckY)
+{
+  for(int i=0; i<MAX_BLOB; ++i)
+  {
+    BLOB *p = &blobs[i];
+    if(p->y <=0 && !p->i)
+    {
+      p->y = puckY;
+      p->dy = 0.1;
+      p->x = i%3;
+//      p->c = random(10);
+      p->i = 20+random(235);
+    }
+    else if(!p->c)
+    {
+      p->y -= p->dy;
+      p->dy += 0.0005;
+      if(p->i>0)
+        p->i--;
+    }
+    else
+    {
+        --p->c;
+    }
+  }
+}
+
+void renderBlobs(int col, byte *pixels)
+{
+  for(int i=0; i<MAX_BLOB; ++i)
+  {
+    BLOB *p = &blobs[i];
+    if(p->x == col)
+    {
+
+      if(p->y >= 0 && p->y < 149 )
+      {
+       
+       pixels[1+(3*(int)p->y)] = p->i;
+      }
+    }
+  }
+}
+/*
+
+            .     .
+               X
+            X     X
+               .
+            X     X
+               X
+*/
+
+void puckRender(int col, int y, byte *pixels)
+{
+  byte *p = &pixels[3*y];
+  switch(col)
+  {
+    case 0:
+    case 2:
+      p[0] = p[1] = p[2] = 255;
+      p-=3;
+      p[0] = p[1] = p[2] = 255;
+      break;
+    case 1:
+      p[0] = p[1] = p[2] = 255;
+      p-=6;
+      p[0] = p[1] = p[2] = 255;
+      break;
+  }
+}
+
+void setup() {
+  pinMode(P_STRIP_A0, OUTPUT);
+  pinMode(P_STRIP_A1, OUTPUT);
+  pinMode(P_STRIP_A2, OUTPUT);
+
+  strip.begin();
+  strip.show(); // Initialize all pixels to 'off'
+ initBlobs();
+}
+int puckY=0;
 void loop() {
-  for(int i=0; i<2; ++i)
+  
+  //runBlobs(puckY);
+  pixels = strip.getPixels();
+  for(int col = 0; col < 1; ++col)
+  {
+    selectStrip(col);
+    memset(pixels, 0, 150*3);
+    //renderBlobs(col, pixels);
+    puckRender(col, puckY, pixels);
+    strip.show();
+  }
+//  ++puckY;
+  ++puckY;
+  if(puckY>149)puckY=0;
+//  delay(4);
+}
+  /*
+  for(int i=0; i<3; ++i)
   {
     selectStrip(i);
   // Some example procedures showing how to display to the pixels:
   colorWipe(strip.Color(255, 0, 0), 50); // Red
   colorWipe(strip.Color(0, 255, 0), 50); // Green
   colorWipe(strip.Color(0, 0, 255), 50); // Blue
-/*  // Send a theater pixel chase in...
+  // Send a theater pixel chase in...
   theaterChase(strip.Color(127, 127, 127), 50); // White
   theaterChase(strip.Color(127,   0,   0), 50); // Red
   theaterChase(strip.Color(  0,   0, 127), 50); // Blue
 
   rainbow(20);
   rainbowCycle(20);
-  theaterChaseRainbow(50);*/
+  theaterChaseRainbow(50);
   }
-}
+}*/
 
 // Fill the dots one after the other with a color
 void colorWipe(uint32_t c, uint8_t wait) {

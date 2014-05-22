@@ -93,6 +93,7 @@ uint8_t
     activeLow;       // Output PORT bitmask    
 #endif
 
+
 };
 
 #endif // ADAFRUIT_NEOPIXEL_MOD_H
