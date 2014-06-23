@@ -2,12 +2,22 @@
 #include "Strip.h"
 
 // pins
+/*
 #define P_STRIP0 5
 #define P_STRIP1 6
 #define P_STRIP2 7
 #define P_STRIP3 36
 #define P_STRIP4 37
 #define P_STRIP5 38
+*/
+
+#define P_STRIP0 51
+#define P_STRIP1 49
+#define P_STRIP2 47
+#define P_STRIP3 45
+#define P_STRIP4 41
+#define P_STRIP5 39
+
 
 // Timing constants
 #define SCALE      VARIANT_MCK / 2UL / 1000000UL
@@ -18,7 +28,7 @@
 
 byte stripBuffer[STRIP_NUMBUFFERS][STRIP_BUFSSIZE]; // The huge display buffer!
 uint32_t endTime;  // Instant in time the strips were last refreshed, used to enfore minimum inter-refresh delay
-byte stripNeedsUpdate = 0;
+byte stripNeedsUpdate;
 
 /////////////////////////////////////////////////////////////////////
 // REFRESH ALL 6 LED STRIPS
@@ -157,18 +167,18 @@ void stripSetup()
   
   // Initialise the "last update time"
   endTime = 0;
+  stripNeedsUpdate = 1;
 }
 
 /////////////////////////////////////////////////////////////////////
-// CLEAR DISPLAY BUFFER
 void stripClear()
 {
   memset(stripBuffer, 0, STRIP_NUMBUFFERS * STRIP_BUFSSIZE);
+  stripNeedsUpdate = 1;
 }
 
 
 /////////////////////////////////////////////////////////////////////
-// CLEAR DISPLAY BUFFER
 void stripRun(unsigned long milliseconds)
 {
   if(stripNeedsUpdate)
@@ -178,4 +188,9 @@ void stripRun(unsigned long milliseconds)
   }
 }
 
+/////////////////////////////////////////////////////////////////////
+void stripInvalidate()
+{
+  stripNeedsUpdate = 1;
+}
 
