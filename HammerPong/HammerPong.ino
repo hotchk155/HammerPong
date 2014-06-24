@@ -192,7 +192,7 @@ void loop()
 //  pixClear();
 //  sparksRender();
 //  pixUpdate();
-  gameRun(0);
-  stripRun(0);
+  gameRun(ticks);
+//  stripRun(0);
 }
 

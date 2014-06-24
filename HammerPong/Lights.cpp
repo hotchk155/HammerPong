@@ -69,7 +69,7 @@ void lightsSetLeft(unsigned int d)
 // rightmost of the horizontal strip, counting to left
 void lightsSetRight(unsigned int d)
 {
-  lightsStateRight &= 0b111111111111;
+  lightsStateRight &= LIGHTS_R_BUTTON;
   unsigned int mask = 1;
   for(int i=0; i<12; ++i)
   {
@@ -105,6 +105,8 @@ void lightsSetup()
   pinMode(P_LIGHTS_ST, OUTPUT);
   pinMode(P_LIGHTS_OE, OUTPUT);
   digitalWrite(P_LIGHTS_OE, LOW);
+  lightsRefresh();
+  lightsSetBrightness(255);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -116,14 +118,22 @@ void lightsSetSymmetrical(unsigned int d)
   lightsRefresh();
 }
 
+void lightsSetBoth(unsigned int left, unsigned int right)
+{
+  lightsSetLeft(left);
+  lightsSetRight(right);
+  lightsRefresh();
+}
+
 ////////////////////////////////////////////////////////////////////////
 // Set state of the LED behind the start button
-void lightsSetButton(byte d)
+void lightsSetButton(int d)
 {
   if(d)
     lightsStateRight |= LIGHTS_R_BUTTON;
   else
     lightsStateRight &= ~LIGHTS_R_BUTTON;
+  lightsRefresh();
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -151,4 +161,6 @@ void lightsSetStack(int len)
     case 12: lightsSetSymmetrical(0b111111111111); break;
     default: lightsSetSymmetrical(0);     
   }
+
+  
 }

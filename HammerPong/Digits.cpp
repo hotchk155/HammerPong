@@ -10,14 +10,8 @@
 #include "digits.h"
 
 // The content of the display
-byte digitsStateLeft = 0;
-byte digitsStateRight = 0;
-
-// dirty flag says if the states have changed
-byte digitsNeedUpdate = 1;
-
-// timer for next event for display animations
-unsigned int digitsNextEvent = 0;
+byte digitsStateLeft;
+byte digitsStateRight;
 
 ////////////////////////////////////////////////////////////////////////
 // Implementation function to refresh the displays
@@ -38,39 +32,8 @@ void digitsRefresh()
 }
 
 ////////////////////////////////////////////////////////////////////////
-// One-off setup
-void digitsSetup()
-{
-  pinMode(P_DIGITS_DAT1, OUTPUT);
-  pinMode(P_DIGITS_DAT2, OUTPUT);
-  pinMode(P_DIGITS_OE1, OUTPUT);  
-  pinMode(P_DIGITS_OE2, OUTPUT);
-  pinMode(P_DIGITS_SH, OUTPUT);
-  pinMode(P_DIGITS_ST, OUTPUT);
-  
-  digitalWrite(P_DIGITS_DAT1, LOW);
-  digitalWrite(P_DIGITS_DAT2, LOW);
-  digitalWrite(P_DIGITS_SH, LOW);
-  digitalWrite(P_DIGITS_ST, LOW);
-  digitalWrite(P_DIGITS_OE1, LOW);
-  digitalWrite(P_DIGITS_OE2, LOW);
-}
-
-////////////////////////////////////////////////////////////////////////
-// Directly set the content of left and right displays
-void digitsSet(int left, int right)
-{
-  if(left>=0)
-    digitsStateLeft = left;
-  if(right>=0)
-    digitsStateRight = right;
-  digitsNeedUpdate = 1;
-}
-
-
-////////////////////////////////////////////////////////////////////////
 // Show a single digit number on the left or the right display
-void digitsShowNumber(byte pos, int n)
+void digitsSet(byte pos, int n)
 {
   byte &buf=pos? digitsStateRight : digitsStateLeft;
   switch(n)
@@ -87,27 +50,59 @@ void digitsShowNumber(byte pos, int n)
     case 9: buf=DIGIT_9; break;
     default: buf=0; break;
   }
-  digitsNeedUpdate=1;
+}
+
+////////////////////////////////////////////////////////////////////////
+// One-off setup
+void digitsSetup()
+{
+  pinMode(P_DIGITS_DAT1, OUTPUT);
+  pinMode(P_DIGITS_DAT2, OUTPUT);
+  pinMode(P_DIGITS_SH, OUTPUT);
+  pinMode(P_DIGITS_ST, OUTPUT);
+  
+  digitalWrite(P_DIGITS_DAT1, LOW);
+  digitalWrite(P_DIGITS_DAT2, LOW);
+  digitalWrite(P_DIGITS_SH, LOW);
+  digitalWrite(P_DIGITS_ST, LOW);
+
+  digitsStateLeft = 0;
+  digitsStateRight = 0;
+  digitsRefresh();
 }
 
 ////////////////////////////////////////////////////////////////////////
 // Show a 2 digit number
-void digitsShowNumber(int n)
+void digitsSetCounter(int n)
 {
   n%=100;
-  digitsShowNumber(0, n/10);
-  digitsShowNumber(1, n%10);
+  digitsSetLeft(n/10);
+  digitsSetRight(n%10);
 }
-
-////////////////////////////////////////////////////////////////////////
-// Run the digits state machine
-void digitsRun(unsigned long milliseconds)
+void digitsSetLeft(int left)
 {
-  if(digitsNeedUpdate)
-  {
-    digitsRefresh();
-    digitsNeedUpdate=0;
-  }
+  digitsSet(0,left);
+  digitsRefresh();
 }
-
-
+void digitsSetRight(int right)
+{
+  digitsSet(1,right);
+  digitsRefresh();
+}
+void digitsSetBoth(int left, int right)
+{
+  digitsSet(0,left);
+  digitsSet(1,right);
+  digitsRefresh();
+}
+void digitsSetRaw(int left, int right)
+{
+  digitsStateLeft = left;
+  digitsStateRight = right;
+  digitsRefresh();
+}
+void digitsSetBrightness(byte left, byte right)
+{
+  analogWrite(P_DIGITS_OE1, 255-left);
+  analogWrite(P_DIGITS_OE2, 255-right);
+}

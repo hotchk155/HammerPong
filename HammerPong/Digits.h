@@ -43,9 +43,12 @@ enum {
 
 ////////////////////////////////////////////////////////////////////////
 void digitsSetup();
-void digitsSet(int left, int right);
-void digitsShowNumber(byte pos, int n);
-void digitsShowNumber(int n);
-void digitsRun(unsigned long milliseconds);
+void digitsSetCounter(int n);
+void digitsSetLeft(int left);
+void digitsSetRight(int right);
+void digitsSetBoth(int left, int right);
+void digitsSetBrightness(byte left, byte right);
+void digitsSetRaw(int left, int right);
+
 
 #endif //__DIGITS_H__

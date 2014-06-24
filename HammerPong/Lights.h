@@ -45,7 +45,8 @@ enum {
 ////////////////////////////////////////////////////////////////////////
 void lightsSetup();
 void lightsSetSymmetrical(unsigned int d);
-void lightsSetButton(byte d);
+void lightsSetBoth(unsigned int left, unsigned int right);
+void lightsSetButton(int d);
 void lightsSetBrightness(byte d);
 void lightsSetStack(int len);
 
