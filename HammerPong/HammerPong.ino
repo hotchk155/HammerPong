@@ -159,6 +159,9 @@ void setup() {
   timeValue = &(TC2->TC_CHANNEL[0].TC_CV);  
   timeReset = &(TC2->TC_CHANNEL[0].TC_CCR);
   *timeReset = TC_CCR_CLKEN | TC_CCR_SWTRG;   
+  
+  lightsSetButton(1);
+  delay(1000);
 }
 //int puckY=0;
 //int q=0;
