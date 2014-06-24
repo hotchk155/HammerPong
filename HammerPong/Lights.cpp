@@ -13,16 +13,6 @@
 unsigned int lightsStateLeft = 0;
 unsigned int lightsStateRight = 0;
 
-// Dirty flag
-byte lightsNeedUpdate = 0;
-
-// Brightness
-byte lightsBrightness = 255;
-
-// Animation info
-int lightsAnimState = 0;
-unsigned long lightsNextAnim = 0;
-
 ////////////////////////////////////////////////////////////////////////
 // Internal refresh function
 void lightsRefresh()
@@ -39,31 +29,6 @@ void lightsRefresh()
     mask>>=1;
   }
   digitalWrite(P_LIGHTS_ST, HIGH);
-}
-
-////////////////////////////////////////////////////////////////////////
-// Animation
-void lightsAnim1()
-{
-  switch(lightsAnimState%3)
-  {
-    case 0: lightsSetSymmetrical(0b1001001001001); break;
-    case 1: lightsSetSymmetrical(0b1010010010010); break;
-    case 2: lightsSetSymmetrical(0b1100100100100); break;
-  } 
-  lightsAnimState++;
-}
-
-////////////////////////////////////////////////////////////////////////
-// One off setup
-void lightsSetup()
-{
-  pinMode(P_LIGHTS_DAT_1, OUTPUT);
-  pinMode(P_LIGHTS_DAT_2, OUTPUT);
-  pinMode(P_LIGHTS_SH, OUTPUT);
-  pinMode(P_LIGHTS_ST, OUTPUT);
-  pinMode(P_LIGHTS_OE, OUTPUT);
-  digitalWrite(P_LIGHTS_OE, LOW);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -96,7 +61,6 @@ void lightsSetLeft(unsigned int d)
     }    
     mask <<=1;
   }
-  lightsNeedUpdate = 1;
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -129,7 +93,18 @@ void lightsSetRight(unsigned int d)
     }    
     mask <<=1;
   }
-  lightsNeedUpdate = 1;
+}
+
+////////////////////////////////////////////////////////////////////////
+// One off setup
+void lightsSetup()
+{
+  pinMode(P_LIGHTS_DAT_1, OUTPUT);
+  pinMode(P_LIGHTS_DAT_2, OUTPUT);
+  pinMode(P_LIGHTS_SH, OUTPUT);
+  pinMode(P_LIGHTS_ST, OUTPUT);
+  pinMode(P_LIGHTS_OE, OUTPUT);
+  digitalWrite(P_LIGHTS_OE, LOW);
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -138,6 +113,7 @@ void lightsSetSymmetrical(unsigned int d)
 {
   lightsSetLeft(d);
   lightsSetRight(d);
+  lightsRefresh();
 }
 
 ////////////////////////////////////////////////////////////////////////
@@ -151,19 +127,28 @@ void lightsSetButton(byte d)
 }
 
 ////////////////////////////////////////////////////////////////////////
-// Animation
-void lightsRun(unsigned long milliseconds)
+void lightsSetBrightness(byte d)
 {
-  if(milliseconds >= lightsNextAnim)
-  {
-    lightsAnim1();
-    lightsNextAnim = milliseconds + 100;
-  }
-  if(lightsNeedUpdate)
-  {
-    lightsRefresh();
-    lightsNeedUpdate=0;
-  }
-  analogWrite(P_LIGHTS_OE, 255-lightsBrightness);
+  analogWrite(P_LIGHTS_OE, 255-d);
 }
 
+////////////////////////////////////////////////////////////////////////
+void lightsSetStack(int len)
+{
+  switch(len)
+  {
+    case 1:  lightsSetSymmetrical(0b000000000001); break;
+    case 2:  lightsSetSymmetrical(0b000000000011); break;
+    case 3:  lightsSetSymmetrical(0b000000000111); break;
+    case 4:  lightsSetSymmetrical(0b000000001111); break;
+    case 5:  lightsSetSymmetrical(0b000000011111); break;
+    case 6:  lightsSetSymmetrical(0b000000111111); break;
+    case 7:  lightsSetSymmetrical(0b000001111111); break;
+    case 8:  lightsSetSymmetrical(0b000011111111); break;
+    case 9:  lightsSetSymmetrical(0b000111111111); break;
+    case 10: lightsSetSymmetrical(0b001111111111); break;
+    case 11: lightsSetSymmetrical(0b011111111111); break;
+    case 12: lightsSetSymmetrical(0b111111111111); break;
+    default: lightsSetSymmetrical(0);     
+  }
+}

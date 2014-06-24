@@ -44,10 +44,10 @@ enum {
 
 ////////////////////////////////////////////////////////////////////////
 void lightsSetup();
-void lightsSetLeft(unsigned int d);
-void lightsSetRight(unsigned int d);
 void lightsSetSymmetrical(unsigned int d);
 void lightsSetButton(byte d);
-void lightsRun(unsigned long milliseconds);
+void lightsSetBrightness(byte d);
+void lightsSetStack(int len);
+
 
 #endif // __LIGHTS_H__
