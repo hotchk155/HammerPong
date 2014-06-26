@@ -14,6 +14,8 @@
 #define P_HEARTBEAT 13
 
 
+CMIDI MIDI;
+
 /*
 */
 class CPlayerBat
@@ -205,7 +207,7 @@ void setup() {
   digitalWrite(P_HEARTBEAT, LOW);
   //sparksInit();
 //  pixInit();
-  midiSetup();
+  MIDI.setup();
   stripSetup();
   lightsSetup();
   digitsSetup();
@@ -265,9 +267,9 @@ void loop()
 //  pixClear();
 //  sparksRender();
 //  pixUpdate();
-  if(midiRead() == 0x90 && midiParams[1])
+  if(MIDI.read() == 0x90 && MIDI.param2())
   {
-    switch(midiParams[0])
+    switch(MIDI.param1())
     {
       case 60:
         digitsSetBoth(0xff,0);
