@@ -162,12 +162,12 @@ void stripSetup()
   digitalWrite(P_STRIP4, LOW);
   digitalWrite(P_STRIP5, LOW);
 
-  // Clear the display  
-  stripClear();
   
   // Initialise the "last update time"
   endTime = 0;
-  stripNeedsUpdate = 1;
+  stripClear();
+  stripRefresh();
+  stripNeedsUpdate = 0;
 }
 
 /////////////////////////////////////////////////////////////////////

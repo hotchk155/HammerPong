@@ -6,89 +6,72 @@
 #include "Digits.h"
 #include "Strip.h"
 #include "Game.h"
+#include "Midi.h"
+#include "Animation.h"
 
 
 // Pin for the hearbeat LED
 #define P_HEARTBEAT 13
 
 
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-//
-//
-//
-// LOW LEVEL MIDI HANDLING
-//
-//
-//
-////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////
-
-// state variables
-byte midiInRunningStatus;
-byte midiOutRunningStatus;
-byte midiNumParams;
-byte midiParams[2];
-char midiParamIndex;
-
-////////////////////////////////////////////////////////////////////////////////
-// MIDI INIT
-void midiSetup()
+/*
+*/
+class CPlayerBat
 {
-  // init the serial port
-  Serial.begin(31250);
-  Serial.flush();
-
-  midiInRunningStatus = 0;
-  midiOutRunningStatus = 0;
-  midiNumParams = 0;
-  midiParamIndex = 0;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-// MIDI READ
-byte midiRead()
-{
-  // loop while we have incoming MIDI serial data
-  while(Serial.available())
-  {    
-    // fetch the next byte
-    byte ch = Serial.read();
-
-    if(!!(ch & 0x80))
+  int baseCol;
+  int baseRow;
+  int dir;
+  byte red;
+  byte green;
+  byte blue;
+  unsigned long nextEvent;
+  byte count;
+public:  
+  CPlayerBat()
+  {
+    baseCol = 0;
+    baseRow = 1;
+    red=0;
+    green=100;
+    blue=0;
+    nextEvent = 0;
+    count = 0;
+  }
+  void render()
+  {
+    byte *p;
+    int ofs = 3*baseRow;
+    p = &stripBuffer[baseCol + 0][ofs];
+    p[0] = green;
+    p[1] = red;
+    p[2] = blue;
+    p = &stripBuffer[baseCol + 1][ofs];
+    p[0] = green;
+    p[1] = red;
+    p[2] = blue;
+    p = &stripBuffer[baseCol + 2][ofs];
+    p[0] = green;
+    p[1] = red;
+    p[2] = blue;
+  }
+  void run(unsigned long ticks)
+  {
+    if(!ticks || nextEvent <= ticks)
     {
-      midiParamIndex = 0;
-      midiInRunningStatus = ch; 
-      switch(ch & 0xF0)
-      {
-        case 0xD0: //  Channel Pressure  1  pressure  
-          midiNumParams = 1;
-          break;    
-        case 0x80: //  Note-off  2  key  velocity  
-        case 0x90: //  Note-on  2  key  veolcity  
-        case 0xA0: //  Aftertouch  2  key  touch  
-        case 0xB0: //  Continuous controller  2  controller #  controller value  
-        case 0xC0: //  Patch change  2  instrument #   
-        case 0xE0: //  Pitch bend  2  lsb (7 bits)  msb (7 bits)  
-        default:
-          midiNumParams = 2;
-          break;        
-      }
-    }    
-    else if(midiInRunningStatus)
-    {
-      // gathering parameters
-      midiParams[midiParamIndex++] = ch;
-      if(midiParamIndex >= midiNumParams)
-      {
-        midiParamIndex = 0;
-        return midiInRunningStatus;        
-      }
+      nextEvent = ticks + 50;
+      if(++count > 7) 
+        count = 1;
+//      green = (1<<count)-1;
+      
     }
   }
-  return 0;
-}
+};
+
+
+CPlayerBat PlayerBat1;
+//CPlayerBat PlayerBat2;
+
+
 
 
 
@@ -177,7 +160,8 @@ void sparksRun()
   }
   
 }
-
+*/
+/*
 void puckRender(int y)
 {
 
@@ -212,6 +196,7 @@ void puckRender(int y)
   }
 }
 */
+
 volatile WoReg *timeValue;
 volatile WoReg *timeReset;
 unsigned long ticks = 0;
@@ -243,11 +228,16 @@ void setup() {
   lightsSetButton(1);
   delay(1000);
 }
+
+
+
+/////////////////////////////////////////////////////////////////////
 //int puckY=0;
 //int q=0;
 byte c=0;
 unsigned long nextTick = 0;
 #define TICK_SCALAR 900
+CRaindropAnimation Drops;
 void loop() 
 {
   // If the time has reached our threshold then increment
@@ -287,7 +277,11 @@ void loop()
         break;
     }
   }
+  stripClear();
+  Drops.render();    
+//  stripInvalidate();
   gameRun(ticks);
-//  stripRun(0);
+  stripRun(ticks);
+  Drops.run(ticks);    
 }
 
