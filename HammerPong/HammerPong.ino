@@ -18,6 +18,7 @@
 CMIDI     MIDI;
 CDigits   Digits;
 CLights   Lights;
+CStrip    Strip;
 
 /*
 */
@@ -46,15 +47,15 @@ public:
   {
     byte *p;
     int ofs = 3*baseRow;
-    p = &stripBuffer[baseCol + 0][ofs];
+    p = &Strip.buffer[baseCol + 0][ofs];
     p[0] = green;
     p[1] = red;
     p[2] = blue;
-    p = &stripBuffer[baseCol + 1][ofs];
+    p = &Strip.buffer[baseCol + 1][ofs];
     p[0] = green;
     p[1] = red;
     p[2] = blue;
-    p = &stripBuffer[baseCol + 2][ofs];
+    p = &Strip.buffer[baseCol + 2][ofs];
     p[0] = green;
     p[1] = red;
     p[2] = blue;
@@ -211,7 +212,7 @@ void setup() {
   //sparksInit();
 //  pixInit();
   MIDI.setup();
-  stripSetup();
+  Strip.setup();
   Lights.setup();
   Digits.setup();
   gameSetup();
@@ -282,11 +283,12 @@ void loop()
         break;
     }
   }
-  stripClear();
+  Strip.clear();
   Drops.render();    
-//  stripInvalidate();
+  Strip.refresh();
+  
+  Drops.run(ticks);      
   gameRun(ticks);
-  stripRun(ticks);
-  Drops.run(ticks);    
+  
 }
 

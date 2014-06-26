@@ -91,7 +91,7 @@ public:
       if(drops[i].row>=0 && drops[i].row < 150)
       {      
         byte *p;
-        p = &stripBuffer[drops[i].col][3*(int)drops[i].row];
+        p = &Strip.buffer[drops[i].col][3*(int)drops[i].row];
         p[0] = (float)drops[i].intensity * green/255.0;;
         p[1] = (float)drops[i].intensity * blue/255.0;
         p[2] = (float)drops[i].intensity * red/255.0;;

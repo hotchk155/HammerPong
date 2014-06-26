@@ -212,29 +212,29 @@ void renderPuck(int y)
   byte *p;
   if(q>=0 && q<150)
   {
-    p = &stripBuffer[1][3*q];
+    p = &Strip.buffer[1][3*q];
     p[0] = p[1] = p[2] = 255;
   }
   q++;
   if(q>=0 && q<150)
   {
-    p = &stripBuffer[0][3*q];
+    p = &Strip.buffer[0][3*q];
     p[0] = p[1] = p[2] = 255;
-    p = &stripBuffer[2][3*q];
-    p[0] = p[1] = p[2] = 255;
-  }
-  q++;
-  if(q>=0 && q<150)
-  {
-    p = &stripBuffer[0][3*q];
-    p[0] = p[1] = p[2] = 255;
-    p = &stripBuffer[2][3*q];
+    p = &Strip.buffer[2][3*q];
     p[0] = p[1] = p[2] = 255;
   }
   q++;
   if(q>=0 && q<150)
   {
-    p = &stripBuffer[1][3*q];
+    p = &Strip.buffer[0][3*q];
+    p[0] = p[1] = p[2] = 255;
+    p = &Strip.buffer[2][3*q];
+    p[0] = p[1] = p[2] = 255;
+  }
+  q++;
+  if(q>=0 && q<150)
+  {
+    p = &Strip.buffer[1][3*q];
     p[0] = p[1] = p[2] = 255;
   }
 }
