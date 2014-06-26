@@ -17,6 +17,7 @@
 
 CMIDI     MIDI;
 CDigits   Digits;
+CLights   Lights;
 
 /*
 */
@@ -211,7 +212,7 @@ void setup() {
 //  pixInit();
   MIDI.setup();
   stripSetup();
-  lightsSetup();
+  Lights.setup();
   Digits.setup();
   gameSetup();
   
@@ -229,7 +230,7 @@ void setup() {
   timeReset = &(TC2->TC_CHANNEL[0].TC_CCR);
   *timeReset = TC_CCR_CLKEN | TC_CCR_SWTRG;   
   
-  lightsSetButton(1);
+  Lights.setButton(1);
   delay(1000);
 }
 

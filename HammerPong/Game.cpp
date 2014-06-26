@@ -41,7 +41,7 @@ void gameBeginState(int state)
     break;
     
   case GAME_STATE_SERVE:
-    lightsSetBrightness(200);        
+    Lights.setBrightness(200);        
     gameLightCounter = 0;
     Digits.setBoth(gameScoreLeft, gameScoreRight);
     gameDigitFade = 0;
@@ -53,14 +53,14 @@ void gameBeginState(int state)
     gameLightFade=255;
     break;
   case GAME_STATE_GAMEOVER:
-    lightsSetBrightness(200);        
+    Lights.setBrightness(200);        
     gameLightCounter = 0;
     Digits.setBoth(gameScoreLeft, gameScoreRight);
     gameDigitFade = 0;
     break;
   case GAME_STATE_ATTRACT:    
     Digits.setBrightness(100,100);
-    lightsSetStack(0);
+    Lights.setStack(0);
     gameDigitCounter = 0;
     gameLightCounter = 0;
     break;
@@ -109,7 +109,7 @@ void gameRunLights(unsigned long ticks)
     case GAME_STATE_SERVE:
       if(gameLightCounter < 12)
       {
-        lightsSetStack(++gameLightCounter);        
+        Lights.setStack(++gameLightCounter);        
         gameNextLightEvent = ticks +100;
       }
       else
@@ -121,7 +121,7 @@ void gameRunLights(unsigned long ticks)
     case GAME_STATE_PLAY:
       if(gameLightCounter > 0)
       {
-        lightsSetStack(--gameLightCounter);
+        Lights.setStack(--gameLightCounter);
         gameNextLightEvent = ticks + 20;
       }
       break;
@@ -129,28 +129,28 @@ void gameRunLights(unsigned long ticks)
       if(gameLightCounter < 10)
       {
         if(gameLightCounter&1)
-          lightsSetStack(12);
+          Lights.setStack(12);
         else
-          lightsSetStack(0);          
+          Lights.setStack(0);          
         gameNextLightEvent = ticks + 20;
       }
       else if(gameLightCounter < 100)
       {
-          lightsSetStack(12);
-          lightsSetBrightness(gameLightFade);        
+          Lights.setStack(12);
+          Lights.setBrightness(gameLightFade);        
           gameLightFade/=2.0;
           gameNextLightEvent = ticks + 50;
       }
       else
       {
-          lightsSetStack(0);
+          Lights.setStack(0);
       }
       ++gameLightCounter;
       break;
     case GAME_STATE_GAMEOVER:
       {
         unsigned int b= 0;
-        lightsSetBrightness(200);
+        Lights.setBrightness(200);
         switch(gameLightCounter % 7)        
         {          
           case 0: b=0b000001000000; break;
@@ -170,11 +170,11 @@ void gameRunLights(unsigned long ticks)
           case 4: b|=0b000010000000; break;
         }
         if(0==gameServer)
-          lightsSetBoth(b,0);
+          Lights.setBoth(b,0);
         else
-          lightsSetBoth(0,b);
+          Lights.setBoth(0,b);
         gameLightCounter++;
-        lightsSetButton(gameLightCounter&0x8);
+        Lights.setButton(gameLightCounter&0x8);
       }      
       gameNextLightEvent = ticks + 50;
       break;
@@ -182,7 +182,7 @@ void gameRunLights(unsigned long ticks)
       
     ////////////////////////////////////////  
     case GAME_STATE_ATTRACT:    
-      lightsSetButton(gameLightCounter&0x8);
+      Lights.setButton(gameLightCounter&0x8);
       gameLightCounter++;
       gameNextLightEvent = ticks + 50;
       break;
