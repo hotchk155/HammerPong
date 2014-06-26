@@ -43,7 +43,7 @@ void gameBeginState(int state)
   case GAME_STATE_SERVE:
     lightsSetBrightness(200);        
     gameLightCounter = 0;
-    digitsSetBoth(gameScoreLeft, gameScoreRight);
+    Digits.setBoth(gameScoreLeft, gameScoreRight);
     gameDigitFade = 0;
     break;
   case GAME_STATE_PLAY:
@@ -55,11 +55,11 @@ void gameBeginState(int state)
   case GAME_STATE_GAMEOVER:
     lightsSetBrightness(200);        
     gameLightCounter = 0;
-    digitsSetBoth(gameScoreLeft, gameScoreRight);
+    Digits.setBoth(gameScoreLeft, gameScoreRight);
     gameDigitFade = 0;
     break;
   case GAME_STATE_ATTRACT:    
-    digitsSetBrightness(100,100);
+    Digits.setBrightness(100,100);
     lightsSetStack(0);
     gameDigitCounter = 0;
     gameLightCounter = 0;
@@ -78,9 +78,9 @@ void gameRunDigits(unsigned long ticks)
     case GAME_STATE_SERVE:
        f = 127+125*cos(gameDigitFade);
       if(gameServer==0)
-        digitsSetBrightness(f,d);
+        Digits.setBrightness(f,d);
       else
-        digitsSetBrightness(d,f);
+        Digits.setBrightness(d,f);
       gameDigitFade += 0.1;
       gameNextDigitEvent = ticks +10;
       break;
@@ -88,14 +88,14 @@ void gameRunDigits(unsigned long ticks)
     case GAME_STATE_ATTRACT:
       switch(gameDigitCounter%8)
       {
-        case 0: digitsSetRaw(SEG_A,SEG_F); break;
-        case 1: digitsSetRaw(SEG_B,SEG_G); break;
-        case 2: digitsSetRaw(SEG_G,SEG_C); break;
-        case 3: digitsSetRaw(SEG_E,SEG_D); break;
-        case 4: digitsSetRaw(SEG_D,SEG_E); break;
-        case 5: digitsSetRaw(SEG_C,SEG_G); break;
-        case 6: digitsSetRaw(SEG_G,SEG_B); break;
-        case 7: digitsSetRaw(SEG_F,SEG_A); break;
+        case 0: Digits.setRaw(Digits.SEG_A,Digits.SEG_F); break;
+        case 1: Digits.setRaw(Digits.SEG_B,Digits.SEG_G); break;
+        case 2: Digits.setRaw(Digits.SEG_G,Digits.SEG_C); break;
+        case 3: Digits.setRaw(Digits.SEG_E,Digits.SEG_D); break;
+        case 4: Digits.setRaw(Digits.SEG_D,Digits.SEG_E); break;
+        case 5: Digits.setRaw(Digits.SEG_C,Digits.SEG_G); break;
+        case 6: Digits.setRaw(Digits.SEG_G,Digits.SEG_B); break;
+        case 7: Digits.setRaw(Digits.SEG_F,Digits.SEG_A); break;
       }
       gameNextDigitEvent = ticks +100;
       gameDigitCounter++;

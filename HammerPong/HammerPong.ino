@@ -10,11 +10,13 @@
 #include "Animation.h"
 
 
+
 // Pin for the hearbeat LED
 #define P_HEARTBEAT 13
 
 
-CMIDI MIDI;
+CMIDI     MIDI;
+CDigits   Digits;
 
 /*
 */
@@ -210,7 +212,7 @@ void setup() {
   MIDI.setup();
   stripSetup();
   lightsSetup();
-  digitsSetup();
+  Digits.setup();
   gameSetup();
   
   
@@ -272,10 +274,10 @@ void loop()
     switch(MIDI.param1())
     {
       case 60:
-        digitsSetBoth(0xff,0);
+        Digits.setBoth(0xff,0);
         break;
       case 61:
-        digitsSetBoth(0,0xff);
+        Digits.setBoth(0,0xff);
         break;
     }
   }
