@@ -20,11 +20,6 @@
 
 class CStrip 
 {
-  enum {
-    STRIP_LENGTH   = 150,                        // Number of pixels in a strip
-    STRIP_BUFSSIZE = (3 * STRIP_LENGTH),         // Number of bytes per strip (24 bit RGB)
-    STRIP_NUMBUFFERS = 6                      // Total number of strips in the application
-  };
     
 
   enum {
@@ -47,7 +42,12 @@ class CStrip
   uint32_t endTime;  // Instant in time the strips were last refreshed, used to enfore minimum inter-refresh delay
 
 public:  
-  byte buffer[STRIP_NUMBUFFERS][STRIP_BUFSSIZE]; // The huge display buffer!
+  enum {
+    LENGTH   = 150,                        // Number of pixels in a strip
+    BUFSSIZE = (3 * LENGTH),         // Number of bytes per strip (24 bit RGB)
+    NUMBUFFERS = 6                      // Total number of strips in the application
+  };
+  byte buffer[NUMBUFFERS][BUFSSIZE]; // The huge display buffer!
 
   void setup()
   {
@@ -121,7 +121,7 @@ public:
     int phase0 = pinMask0|pinMask1|pinMask2|pinMask3|pinMask4|pinMask5;
     
     // Loop through all the bytes per strip
-    for(int index = 0; index < STRIP_BUFSSIZE; ++index)  
+    for(int index = 0; index < BUFSSIZE; ++index)  
     {          
       // Fetch all six colour byte values
       byte colourValue0 = buffer[0][index];
@@ -189,7 +189,7 @@ public:
   /////////////////////////////////////////////////////////////////////
   void clear()
   {
-    memset(buffer, 0, STRIP_NUMBUFFERS * STRIP_BUFSSIZE);
+    memset(buffer, 0, NUMBUFFERS * BUFSSIZE);
   }   
 };  
   

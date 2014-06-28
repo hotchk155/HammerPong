@@ -1,12 +1,11 @@
-/*
-  Don't rely on millis... gets slowed when interrupts are turned off during strip updates
-*/
 #include <Arduino.h>
 #include "Lights.h"
 #include "Digits.h"
 #include "Strip.h"
 #include "Game.h"
 #include "Midi.h"
+#include "Player.h"
+#include "Puck.h"
 #include "Animation.h"
 
 
@@ -19,6 +18,9 @@ CMIDI     MIDI;
 CDigits   Digits;
 CLights   Lights;
 CStrip    Strip;
+CPlayer   PlayerLeft(CPlayer::LEFT, CPlayer::BLUE, 0);
+CPlayer   PlayerRight(CPlayer::RIGHT, CPlayer::GREEN, 0);
+CPuck     Puck;
 
 /*
 */
@@ -215,6 +217,7 @@ void setup() {
   Strip.setup();
   Lights.setup();
   Digits.setup();
+  Puck.setup();
   gameSetup();
   
   
@@ -284,11 +287,15 @@ void loop()
     }
   }
   Strip.clear();
-  Drops.render();    
+  PlayerLeft.render();
+  PlayerRight.render();
+  Puck.render();
   Strip.refresh();
   
-  Drops.run(ticks);      
   gameRun(ticks);
+  PlayerLeft.run(ticks);
+  PlayerRight.run(ticks);
+  Puck.run(ticks);
   
 }
 
