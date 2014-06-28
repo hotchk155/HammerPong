@@ -1,6 +1,8 @@
 #ifndef __PUCK_H__
 #define  __PUCK_H__
 
+#include "Trail.h"
+
 ////////////////////////////////////////////////////////////////////
 // 
 // The puck uses its own coordinate system
@@ -31,7 +33,7 @@ class CPuck
     
     MIN_POS = 0,
     MAX_POS = MAX_POS_RIGHT
-  };
+  };  
   float pos;
   int dir;  
   float vel;
@@ -56,11 +58,12 @@ public:
   void setup()
   {
     pos = 0;
-    vel = 0;
+    vel = 0.9;
     dir = 1;
     nextTick = 0;
     stripRow[0] = stripRow[1] = stripRow[2] = -1;
-    newServe(LEFT);
+    state = IN_PLAY;
+//    newServe(LEFT);
   }
   
   ////////////////////////////////////////////////////////////////////
@@ -70,46 +73,76 @@ public:
     {
       state = SERVE_RIGHT;
       pos = MIN_POS_RIGHT;
-      dir = 0;
     }
     else
     {
-      state = SERVE_RIGHT;
+      state = SERVE_LEFT;
       pos = MAX_POS_LEFT;
-      dir = 1;
     }
   }
   
   ////////////////////////////////////////////////////////////////////
-  void run(unsigned long ticks)
+  void run(unsigned long ticks, CTrail& Trail)
   {
+    int prob;
+    const float dropRate = 0.99;
     if(!ticks || nextTick <= ticks)
     {
-      nextTick = ticks + 10;
       
       switch(state)
       {
         case SERVE_LEFT:
-          pos -= MIN_POS_LEFT;
-          pos /= 2.0;
-          pos += MIN_POS_LEFT;
+          dir = 1;
+          pos -= (MIN_POS_LEFT+1);
+          pos *= dropRate;
+          pos += (MIN_POS_LEFT+1);
+          nextTick = ticks + 3;
           break;
         case SERVE_RIGHT:
-          pos = MAX_POS_RIGHT - pos;
-          pos /= 2.0;
-          pos = MAX_POS_RIGHT - pos;
+          dir = 0;
+          pos = (MAX_POS_RIGHT-1) - pos;
+          pos *= dropRate;
+          pos = (MAX_POS_RIGHT-1) - pos;
+          nextTick = ticks + 3;
           break;
         case IN_PLAY:
+          prob = 0;
           if(dir > 0)
           {
-            if(++pos >= MAX_POS - 1)
+            if(pos > MIN_POS_LEFT + 5 && pos < MAX_POS_LEFT)
+              prob = 10+pos/10;   
+            pos+=vel;          
+            if(pos >= MAX_POS - 1)
               dir=-1;
+            
           }
           else
           {
-            if(--pos < 1)
+            if(pos < MAX_POS_RIGHT - 5 && pos > MIN_POS_RIGHT)
+              prob = 10+(MAX_POS_RIGHT - pos)/10;
+             pos-=vel;
+            if(pos < 1)
               dir=1;
           }
+          if(prob>0) 
+          {
+            switch(random(prob))
+            {
+              case 1:
+                if(stripRow[0] > 0)
+                  Trail.add(stripCol, stripRow[0],vel);
+                break;
+              case 2:
+                if(stripRow[1] > 0)
+                  Trail.add(stripCol+1, stripRow[1],vel);
+                break;
+              case 3:
+                if(stripRow[2] > 0)
+                  Trail.add(stripCol+2, stripRow[2],vel);
+                break;
+            }          
+          }
+          nextTick = ticks + 1;
           break;
       }
 
@@ -192,7 +225,7 @@ public:
               stripRow[1] = row - 1;
           }
         }
-      }
+      }      
     }  
   }  
   

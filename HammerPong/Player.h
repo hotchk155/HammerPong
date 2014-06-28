@@ -82,6 +82,7 @@ class CPlayer
     void render()
     {
       int col;
+      byte *p;
       if(which == RIGHT)
       {
         col = 3;
@@ -93,11 +94,19 @@ class CPlayer
 
       if(state == IDLE)
       {
-        int index = colour + 3 * bottomRow;
+        int index = 3 * bottomRow;
         byte intensity = 155.0+100.0*cos(an);
-        Strip.buffer[col][index] = intensity;
-        Strip.buffer[col+1][index] = intensity;
-        Strip.buffer[col+2][index] = intensity;
+        p=&Strip.buffer[col][index];
+        p[0]=p[1]=p[2] = 0; 
+        p[colour] = intensity;
+
+        p=&Strip.buffer[col+1][index];
+        p[0]=p[1]=p[2] = 0; 
+        p[colour] = intensity;
+
+        p=&Strip.buffer[col+2][index];
+        p[0]=p[1]=p[2] = 0; 
+        p[colour] = intensity;
         
       }
       else
@@ -107,11 +116,20 @@ class CPlayer
         {        
           int row = bottomRow + scale*i;
           if(row < Strip.LENGTH)       
-          {
-            int index = colour + 3 * row;
-            Strip.buffer[col][index] = intensity;
-            Strip.buffer[col+1][index] = intensity;
-            Strip.buffer[col+2][index] = intensity;
+          {            
+            int index = 3 * row;
+            p=&Strip.buffer[col][index];
+            p[0]=p[1]=p[2] = 0; 
+            p[colour] = intensity;
+
+            p=&Strip.buffer[col+1][index];
+            p[0]=p[1]=p[2] = 0; 
+            p[colour] = intensity;
+
+            p=&Strip.buffer[col+2][index];
+            p[0]=p[1]=p[2] = 0; 
+            p[colour] = intensity;
+            
             intensity <<= 1;
             intensity |= 1;
           }
