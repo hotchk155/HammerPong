@@ -124,6 +124,7 @@ class CPlayer
         p=&Strip.buffer[col+2][index];
         p[0]=p[1]=p[2] = 0; 
         p[colour] = intensity;
+        topRow = 0;
         
       }
       else
@@ -171,8 +172,11 @@ class CPlayer
     // Check if the bat is swinging and occupies a given strip row
     byte hitTest(int row)
     {
-      if(EXPAND == state && row >= 0 && row <= topRow)
+      if((EXPAND == state) && (row >= 0) && (row <= topRow))
+      {
+        Serial.println("hittest ok");        
         return 1;
+      }
       return 0;
     }
 };

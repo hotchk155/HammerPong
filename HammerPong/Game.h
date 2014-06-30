@@ -23,7 +23,7 @@
 //
 // MACRO DEFS
 //
-#define INITIAL_SPEED 0.2  // initial speed of puck after serve (positions per tick)
+#define INITIAL_SPEED 0.5  // initial speed of puck after serve (positions per tick)
 #define REBOUND_SPEED 1.1  // how much the speed increases when the puck is returned
 #define MAX_SCORE  9
 
@@ -32,6 +32,11 @@
 //
 class CGame
 {
+  enum 
+  {
+    P_SWING_LEFT = 23,
+    P_SWING_RIGHT = 25,
+  };
   // STATES
   enum 
   {
@@ -51,7 +56,7 @@ class CGame
   int tickPeriod;         // state machine run period (ticks) 
   unsigned long nextTick; // scheduled time of next run
   
-  CMIDI       MIDI;        // MIDI comms handler
+//  CMIDI       MIDI;        // MIDI comms handler
   CDigits     Digits;      // Handler for dual 7-seg score display
   CLights     Lights;      // Handler for console lights
   CStrip      Strip;       // Handler for LED strips
@@ -64,15 +69,17 @@ public:
 
   ////////////////////////////////////////////////////////////////////////////
   CGame() :
-    PlayerLeft(CPlayer::LEFT, CPlayer::BLUE, 0),
-    PlayerRight(CPlayer::RIGHT, CPlayer::GREEN, 0)
+    PlayerLeft(CPlayer::LEFT, CPlayer::BLUE, CStrip::MIN_LEFT),
+    PlayerRight(CPlayer::RIGHT, CPlayer::GREEN, CStrip::MIN_RIGHT)
   {
   }
 
   ////////////////////////////////////////////////////////////////////////////
   void setup()
   {
-    MIDI.setup();
+    pinMode(P_SWING_LEFT, INPUT_PULLUP);
+    pinMode(P_SWING_RIGHT, INPUT_PULLUP);
+//    MIDI.setup();
     Digits.setup();
     Lights.setup();
     Strip.setup();
@@ -90,6 +97,7 @@ public:
     switch(newState)
     {
       case BEGIN_STATE:
+        Serial.println("BEGIN_STATE");
         servingPlayer = random(2) ? CPlayer::LEFT : CPlayer::RIGHT;
         scoreLeft = 0;
         scoreRight = 0;
@@ -97,6 +105,7 @@ public:
         break;
           
       case SERVING_STATE:
+        Serial.println("SERVING_STATE");
         Puck.readyToServe(servingPlayer);      
         Lights.sequence(CLights::SLOW_RISE_BOTH_SIDES);
         Digits.set(scoreLeft, scoreRight);
@@ -108,6 +117,7 @@ public:
         break;
 
       case PLAYING_STATE:
+        Serial.println("PLAYING_STATE");
         rallyCount = 0;
         Digits.set(rallyCount);
         Digits.sequence(CDigits::NO_SEQUENCE);
@@ -117,11 +127,13 @@ public:
         break;
         
       case SCORED_STATE:
+        Serial.println("SCORED_STATE");
         Lights.sequence(CLights::SCORE);
         tickPeriod = 2000;
         break;
         
       case GAMEOVER_STATE:
+        Serial.println("GAMEOVER_STATE");
         if(scoreLeft > scoreRight)
         {
           Lights.sequence(CLights::VICTORY_LEFT);
@@ -141,27 +153,20 @@ public:
         break;
     }
     state = newState;
+    nextTick = 0;
   }
   
   ////////////////////////////////////////////////////////////////////////////
   void run(unsigned long ticks)
   {
-    if(MIDI.read() == 0x90 && MIDI.param2())
-    {
-      switch(MIDI.param1())
-      {
-        case 60:
-          PlayerLeft.swing();
-          break;
-        case 61:
-          PlayerLeft.swing();
-          break;
-      }
-    }
+    if(!digitalRead(P_SWING_LEFT))
+      PlayerLeft.swing();
+    if(!digitalRead(P_SWING_RIGHT))
+      PlayerRight.swing();
     
     PlayerLeft.run(ticks);
     PlayerRight.run(ticks);
-    Puck.run(ticks, Trail, PlayerLeft, PlayerRight);  
+    Puck.run(ticks, Trail);//, PlayerLeft, PlayerRight);  
     Trail.run(ticks);
     Digits.run(ticks);
     Lights.run(ticks);
@@ -201,7 +206,7 @@ public:
                 transition(SCORED_STATE);
             }
             else if(Puck.hitTest(PlayerLeft, PlayerRight))
-            {
+            {              
                 Puck.reverse(REBOUND_SPEED);
                 Digits.set(++rallyCount);
             }             

@@ -41,12 +41,18 @@ class CStrip
   
   uint32_t endTime;  // Instant in time the strips were last refreshed, used to enfore minimum inter-refresh delay
 
-public:  
+public:    
   enum {
     LENGTH   = 150,                        // Number of pixels in a strip
     BUFSSIZE = (3 * LENGTH),         // Number of bytes per strip (24 bit RGB)
     NUMBUFFERS = 6                      // Total number of strips in the application
   };
+  enum {
+    MIN_LEFT = 2,
+    MAX_LEFT = 150,
+    MIN_RIGHT = 2,
+    MAX_RIGHT = 150
+  };  
   byte buffer[NUMBUFFERS][BUFSSIZE]; // The huge display buffer!
 
   void setup()

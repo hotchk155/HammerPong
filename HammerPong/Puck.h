@@ -19,10 +19,10 @@ class CPuck
   enum {
     
     // Limits on physically addressable/visible strip rows
-    MIN_STRIP_ROW_LEFT  = 0,
-    MAX_STRIP_ROW_LEFT  = 150,
-    MIN_STRIP_ROW_RIGHT = 0,
-    MAX_STRIP_ROW_RIGHT = 150,
+    MIN_STRIP_ROW_LEFT  = CStrip::MIN_LEFT,
+    MAX_STRIP_ROW_LEFT  = CStrip::MAX_LEFT,
+    MIN_STRIP_ROW_RIGHT = CStrip::MIN_RIGHT,
+    MAX_STRIP_ROW_RIGHT = CStrip::MAX_RIGHT,
     
     VIRTUAL_GAP         = 50,
     
@@ -35,7 +35,7 @@ class CPuck
     MAX_POS = MAX_POS_RIGHT
   };  
   float pos;
-  int dir;  
+  int facing;  
   float vel;
   unsigned long nextTick;
   
@@ -50,6 +50,10 @@ class CPuck
     MISSED_LEFT,
     MISSED_RIGHT
   };
+  enum {
+    LEFT_TO_RIGHT = 1,
+    RIGHT_TO_LEFT = -1
+  };
   int state;
   
 public:
@@ -59,14 +63,14 @@ public:
   {
     pos = 0;
     vel = 0;
-    dir = 1;
+    facing = LEFT_TO_RIGHT;
     nextTick = 0;
     stripRow[0] = stripRow[1] = stripRow[2] = -1;
     state = INIT;
   }
     
   ////////////////////////////////////////////////////////////////////
-  void run(unsigned long ticks, CTrail& Trail, CPlayer& PlayerLeft, CPlayer& PlayerRight )
+  void run(unsigned long ticks, CTrail& Trail)//, CPlayer& PlayerLeft, CPlayer& PlayerRight )
   {
     int prob;
     int row;
@@ -81,30 +85,30 @@ public:
           
         // Left player needs to serve
         case SERVE_LEFT:
-          dir = 1;
+          facing = LEFT_TO_RIGHT;
           pos -= (MIN_POS_LEFT+1);
           pos *= dropRate;
           pos += (MIN_POS_LEFT+1);
           nextTick = ticks + 3;
           
           // Check if the player has served
-          row = pos - MIN_POS_LEFT;
-          if(PlayerLeft.hitTest(row))
-            state = IN_PLAY;
+//          row = pos - MIN_POS_LEFT;
+//          if(PlayerLeft.hitTest(row))
+//            state = IN_PLAY;
           break;
 
         // Right player needs to serve
         case SERVE_RIGHT:
-          dir = 0;
+          facing = RIGHT_TO_LEFT;
           pos = (MAX_POS_RIGHT-1) - pos;
           pos *= dropRate;
           pos = (MAX_POS_RIGHT-1) - pos;
           nextTick = ticks + 3;
           
           // Check if the player has served
-          row = MAX_STRIP_ROW_RIGHT - (pos - MIN_POS_RIGHT);
-          if(PlayerRight.hitTest(row))
-            state = IN_PLAY;
+//          row = MAX_STRIP_ROW_RIGHT - (pos - MIN_POS_RIGHT);
+//          if(PlayerRight.hitTest(row))
+//            state = IN_PLAY;
           break;
           
         // The game is in progress
@@ -112,7 +116,7 @@ public:
         
           // Add sparks to the trail
           prob = 0;
-          if(dir > 0)
+          if(facing == LEFT_TO_RIGHT)
           {
             if(pos > MIN_POS_LEFT + 5 && pos < MAX_POS_LEFT)
               prob = 10+pos/10;   
@@ -145,7 +149,6 @@ public:
           nextTick = ticks + 1;
           break;
           
-          
       case MISSED_LEFT:
       case MISSED_RIGHT:  
           nextTick = ticks + 1000;             
@@ -156,13 +159,12 @@ public:
       // Prepare the set of row indexes for each of the 
       // 3 strip columns displaying the puck
       stripRow[0] = stripRow[1] = stripRow[2] = -1;
-      if(dir > 0) 
+      if(facing == LEFT_TO_RIGHT) 
       {
-        // Puck is moving from the LEFT to the RIGHT
+        // Puck is facing as if moving from the LEFT to the RIGHT
         if(pos < MIN_POS_LEFT)
         {
           // off strip
-          state = MISSED_LEFT;
         }
         else if(pos < MAX_POS_LEFT)
         {          
@@ -194,14 +196,18 @@ public:
               stripRow[1] = row - 1;
           }
         }
+        else
+        {
+          Serial.print("MISSED_RIGHT");
+          state = MISSED_RIGHT;
+        }
       }
       else
       {
-        // Puck is moving from the RIGHT to the LEFT
+        // Puck is facing as if moving from the RIGHT to the LEFT
         if(pos >= MAX_POS_RIGHT)
         {
           // off end of strip
-          state = MISSED_RIGHT;
         }
         else if(pos > MIN_POS_RIGHT)
         {          
@@ -232,6 +238,11 @@ public:
             if(row > MIN_STRIP_ROW_LEFT)
               stripRow[1] = row - 1;
           }
+        }
+        else
+        {
+          Serial.print("MISSED_LEFT");
+          state = MISSED_LEFT;
         }
       }      
     }  
@@ -278,13 +289,13 @@ public:
     {
       // puck is on left side, so if it is moving toward 
       // left player then check if the player hit it
-      if(dir<0)
+      if(facing==RIGHT_TO_LEFT||state==SERVE_LEFT)
         return PlayerLeft.hitTest(stripRow[1]);
     }
     else
     {
       // puck is on right side, yada yada
-      if(dir>0)
+      if(facing==LEFT_TO_RIGHT||state==SERVE_RIGHT)
         return PlayerRight.hitTest(stripRow[1]);
     }    
     return 0;    
@@ -294,18 +305,23 @@ public:
   // kick off the game
   void startPlay(float v)
   {
+    Serial.println("startPlay");
     vel = v;
     if(SERVE_RIGHT == state)
-      dir = -1;
+      facing = RIGHT_TO_LEFT;
     else
-      dir = 1;
+      facing = LEFT_TO_RIGHT;
     state = IN_PLAY;
   }
 
   ////////////////////////////////////////////////////////////////////
   void reverse(float v)  
   {
-    dir=-dir;
+    Serial.println("reverse");
+    if(facing==LEFT_TO_RIGHT)
+      facing = RIGHT_TO_LEFT;
+    else
+      facing =LEFT_TO_RIGHT;
     vel*=v;
   }
   

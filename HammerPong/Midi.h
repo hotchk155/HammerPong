@@ -31,8 +31,9 @@ public:
   void setup()
   {
     // init the serial port
-    Serial.begin(31250);
-    Serial.flush();
+    Serial.begin(9600);
+    Serial1.begin(31250);
+    Serial1.flush();
   
     inRunningStatus = 0;
     outRunningStatus = 0;
@@ -43,12 +44,12 @@ public:
   byte read()
   {
     // loop while we have incoming MIDI serial data
-    while(Serial.available())
+    while(Serial1.available())
     {    
       // fetch the next byte
-      byte ch = Serial.read();
-  
-      if(!!(ch & 0x80))
+      byte ch = Serial1.read();
+
+      if(!!(ch & 0x80)) // is a status
       {
         paramIndex = 0;
         inRunningStatus = ch; 
