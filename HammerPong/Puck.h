@@ -70,7 +70,7 @@ public:
   }
     
   ////////////////////////////////////////////////////////////////////
-  void run(unsigned long ticks, CTrail& Trail)//, CPlayer& PlayerLeft, CPlayer& PlayerRight )
+  void run(unsigned long ticks, CSparks& Sparks)
   {
     int prob;
     int row;
@@ -130,19 +130,21 @@ public:
           }
           if(prob>0) 
           {
+            float v = -vel/(2+random(5));
+            int i = random(100);
             switch(random(prob))
             {
               case 1:
                 if(stripRow[0] > 0)
-                  Trail.add(stripCol, stripRow[0],vel);
+                  Sparks.add(stripCol, stripRow[0],v,255,0,0,i);
                 break;
               case 2:
                 if(stripRow[1] > 0)
-                  Trail.add(stripCol+1, stripRow[1],vel);
+                  Sparks.add(stripCol+1, stripRow[1],v,255,0,0,i);
                 break;
               case 3:
                 if(stripRow[2] > 0)
-                  Trail.add(stripCol+2, stripRow[2],vel);
+                  Sparks.add(stripCol+2, stripRow[2],v,255,0,0,i);
                 break;
             }          
           }

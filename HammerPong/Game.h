@@ -15,9 +15,9 @@
 #include "Lights.h"
 #include "Digits.h"
 #include "Strip.h"
+#include "Sparks.h"
 #include "Player.h"
 #include "Puck.h"
-#include "Trail.h"
 #include "Animation.h"
 
 //
@@ -63,7 +63,7 @@ class CGame
   CPlayer     PlayerLeft;  // Handler for left side player
   CPlayer     PlayerRight; // Handler for right side player
   CPuck       Puck;        // Handler for puck
-  CTrail      Trail;       // Handler for trail of "sparks" left by puck
+  CSparks     Sparks;       // Handler for trail of "sparks" left by puck
   
 public:  
 
@@ -86,7 +86,7 @@ public:
     PlayerLeft.setup();
     PlayerRight.setup();
     Puck.setup();
-    Trail.setup();
+    Sparks.setup();
     Lights.setButton(1);
     transition(BEGIN_STATE);
   }
@@ -106,6 +106,8 @@ public:
           
       case SERVING_STATE:
         Serial.println("SERVING_STATE");
+        PlayerLeft.unexplode();
+        PlayerRight.unexplode();
         Puck.readyToServe(servingPlayer);      
         Lights.sequence(CLights::SLOW_RISE_BOTH_SIDES);
         Digits.set(scoreLeft, scoreRight);
@@ -118,6 +120,7 @@ public:
 
       case PLAYING_STATE:
         Serial.println("PLAYING_STATE");
+        Sparks.setCount(50);
         rallyCount = 0;
         Digits.set(rallyCount);
         Digits.sequence(CDigits::NO_SEQUENCE);
@@ -166,8 +169,8 @@ public:
     
     PlayerLeft.run(ticks);
     PlayerRight.run(ticks);
-    Puck.run(ticks, Trail);//, PlayerLeft, PlayerRight);  
-    Trail.run(ticks);
+    Puck.run(ticks, Sparks); 
+    Sparks.run(ticks);
     Digits.run(ticks);
     Lights.run(ticks);
       
@@ -195,12 +198,14 @@ public:
             int losingPlayer = Puck.isOutOfPlay();
             if(CPlayer::LEFT == losingPlayer)
             {
+                PlayerLeft.explode(Sparks);
                 scoreRight++;
                 servingPlayer = CPlayer::RIGHT;
                 transition(SCORED_STATE);
             }
             else if(CPlayer::RIGHT == losingPlayer)
             {
+                PlayerRight.explode(Sparks);
                 scoreLeft++;
                 servingPlayer = CPlayer::LEFT;
                 transition(SCORED_STATE);
@@ -240,7 +245,7 @@ public:
   void render()
   {
     Strip.clear();
-    Trail.render(Strip);
+    Sparks.render(Strip);
     PlayerLeft.render(Strip);
     PlayerRight.render(Strip);
     Puck.render(Strip);

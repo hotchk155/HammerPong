@@ -16,7 +16,8 @@ class CPlayer
     enum {
       IDLE,
       EXPAND,
-      CONTRACT      
+      CONTRACT,
+      EXPLODED
     };
     
     int which;
@@ -127,7 +128,7 @@ class CPlayer
         topRow = 0;
         
       }
-      else
+      else if(state != EXPLODED)
       {
         byte intensity = 0x2;
         float row = bottomRow;
@@ -178,6 +179,23 @@ class CPlayer
         return 1;
       }
       return 0;
+    }
+    
+    void explode(CSparks &Sparks)
+    {
+      byte red = (colour == RED)? 255:0;
+      byte green = (colour == GREEN)? 255:0;
+      byte blue = (colour == BLUE)? 255:0;
+      int baseCol = (which == LEFT) ? CStrip::BASE_COL_LEFT : CStrip::BASE_COL_RIGHT;
+      state = EXPLODED;
+      for(int i=0; i<30; ++i)
+         Sparks.add(baseCol + i%3, bottomRow, -(float)random(15)/20.0, red, green, blue, random(200));
+    }
+    
+    void unexplode()
+    {
+      if(state == EXPLODED)
+        state = IDLE;
     }
 };
 

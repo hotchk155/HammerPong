@@ -30,8 +30,7 @@ class CStrip
     P_STRIP4 = 41,
     P_STRIP5 = 39
   };
-
-
+  
   // Timing constants
   #define SCALE      VARIANT_MCK / 2UL / 1000000UL
   #define INST       (2UL * F_CPU / VARIANT_MCK)
@@ -45,7 +44,9 @@ public:
   enum {
     LENGTH   = 150,                        // Number of pixels in a strip
     BUFSSIZE = (3 * LENGTH),         // Number of bytes per strip (24 bit RGB)
-    NUMBUFFERS = 6                      // Total number of strips in the application
+    NUMBUFFERS = 6,                      // Total number of strips in the application
+    BASE_COL_LEFT = 0,
+    BASE_COL_RIGHT = 3    
   };
   enum {
     MIN_LEFT = 2,
