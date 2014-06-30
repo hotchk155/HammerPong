@@ -27,17 +27,16 @@ class CSparks
   };  
   SPARK sparks[MAX_SPARKS];
   unsigned long nextTicks;
-  int count;
 public:
   void setup()
   {
-    count = 0;
     nextTicks = 0;
   }
 
+  
   void add(byte col, int row, float vel, byte red, byte green, byte blue, int intensity) // velocity is per tick
   {
-    for(int i=0; i<count; ++i)
+    for(int i=0; i<MAX_SPARKS; ++i)
     {
       SPARK *p = &sparks[i];
       if(!((int)p->intensity))
@@ -56,6 +55,35 @@ public:
       }
     }    
   }
+  
+  void add(byte col, int row, float vel, byte wheelPos, int intensity) 
+  {
+    byte red;
+    byte green;
+    byte blue;
+    if(wheelPos < 85) 
+    {
+      red = wheelPos * 3;
+      green = 255 - wheelPos * 3;
+      blue = 0;
+    } 
+    else if(wheelPos < 170) 
+    {
+      wheelPos -= 85;
+      red = 255 - wheelPos * 3;
+      green = 0;
+      blue = wheelPos * 3;
+    } 
+    else 
+    {
+     wheelPos -= 170;
+      red = 0;
+      green = wheelPos * 3;
+      blue = 255 - wheelPos * 3;
+    }
+    add(col, row, vel, red, green, blue, intensity);
+  }
+  
   void run(unsigned long ticks)
   {
     if(!ticks || nextTicks < ticks)
@@ -91,16 +119,6 @@ public:
       }
     }
   }              
-  void setCount(int newCount)
-  {
-    if(newCount > MAX_SPARKS)
-      newCount = MAX_SPARKS;
-    if(newCount < 0)
-      newCount = 0;
-    for(int i=count; i<newCount; ++i)
-      sparks[i].intensity = 0;
-    count = newCount;    
-  }
 };
 
 #endif //  __SPARKS_H__

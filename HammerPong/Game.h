@@ -18,7 +18,6 @@
 #include "Sparks.h"
 #include "Player.h"
 #include "Puck.h"
-#include "Animation.h"
 
 //
 // MACRO DEFS
@@ -55,6 +54,7 @@ class CGame
   int rallyCount;         // length of current rally
   int tickPeriod;         // state machine run period (ticks) 
   unsigned long nextTick; // scheduled time of next run
+  float wheelPos;
   
 //  CMIDI       MIDI;        // MIDI comms handler
   CDigits     Digits;      // Handler for dual 7-seg score display
@@ -120,7 +120,6 @@ public:
 
       case PLAYING_STATE:
         Serial.println("PLAYING_STATE");
-        Sparks.setCount(50);
         rallyCount = 0;
         Digits.set(rallyCount);
         Digits.sequence(CDigits::NO_SEQUENCE);
@@ -152,7 +151,8 @@ public:
 
       case ATTRACT_STATE:
         Digits.sequence(CDigits::MEANDER);
-        tickPeriod = 100;
+        wheelPos = 0;
+        tickPeriod = 50;
         break;
     }
     state = newState;
@@ -235,6 +235,10 @@ public:
         //////////////////////////////////////////////////////////////////
         // Nobody playing, do some other stuff        
         case ATTRACT_STATE:
+          Sparks.add(random(6), 150, (float)random(25)/50.0, wheelPos, random(200));
+          wheelPos+=0.1;
+          if(wheelPos >= 255)
+            wheelPos = 0;
           break;
       }        
       nextTick = ticks + tickPeriod;
