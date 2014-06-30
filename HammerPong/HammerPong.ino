@@ -28,8 +28,6 @@ unsigned long ticks = 0;    // Tick counter used for scheduling. A tick is of th
 ////////////////////////////////////////////////////////////////////////////
 void setup() 
 {    
-  Serial.begin(9600);
-  Serial.println("start");
   // Setup the game
   Heartbeat.setup();
   Game.setup();

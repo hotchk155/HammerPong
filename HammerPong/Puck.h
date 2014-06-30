@@ -206,7 +206,6 @@ public:
         }
         else
         {
-          Serial.print("MISSED_RIGHT");
           state = MISSED_RIGHT;
         }
       }
@@ -249,7 +248,6 @@ public:
         }
         else
         {
-          Serial.print("MISSED_LEFT");
           state = MISSED_LEFT;
         }
       }      
@@ -313,7 +311,6 @@ public:
   // kick off the game
   void startPlay(float v)
   {
-    Serial.println("startPlay");
     vel = v;
     if(SERVE_RIGHT == state)
       facing = RIGHT_TO_LEFT;
@@ -325,7 +322,6 @@ public:
   ////////////////////////////////////////////////////////////////////
   void reverse(float v)  
   {
-    Serial.println("reverse");
     if(facing==LEFT_TO_RIGHT)
       facing = RIGHT_TO_LEFT;
     else

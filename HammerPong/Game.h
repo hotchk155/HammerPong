@@ -97,7 +97,6 @@ public:
     switch(newState)
     {
       case BEGIN_STATE:
-        Serial.println("BEGIN_STATE");
         servingPlayer = (analogRead(0)&1) ? CPlayer::LEFT : CPlayer::RIGHT;
         scoreLeft = 0;
         scoreRight = 0;
@@ -105,7 +104,6 @@ public:
         break;
           
       case SERVING_STATE:
-        Serial.println("SERVING_STATE");
         PlayerLeft.unexplode();
         PlayerRight.unexplode();
         Puck.readyToServe(servingPlayer);      
@@ -120,7 +118,6 @@ public:
         break;
 
       case PLAYING_STATE:
-        Serial.println("PLAYING_STATE");
         rallyCount = 0;
         Digits.set(rallyCount);
         Digits.sequence(CDigits::NO_SEQUENCE);
@@ -130,13 +127,11 @@ public:
         break;
         
       case SCORED_STATE:
-        Serial.println("SCORED_STATE");
         Lights.sequence(CLights::SCORE);
         tickPeriod = 2000;
         break;
         
       case GAMEOVER_STATE:
-        Serial.println("GAMEOVER_STATE");
         if(scoreLeft > scoreRight)
         {
           Lights.sequence(CLights::VICTORY_LEFT);

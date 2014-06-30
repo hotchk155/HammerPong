@@ -175,10 +175,7 @@ class CPlayer
     byte hitTest(int row)
     {
       if((EXPAND == state) && (row >= 0) && (row <= topRow))
-      {
-        Serial.println("hittest ok");        
         return 1;
-      }
       return 0;
     }
     
