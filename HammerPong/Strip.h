@@ -193,6 +193,4 @@ public:
   }   
 };  
   
-extern CStrip Strip;
-
 #endif // __STRIP_H__

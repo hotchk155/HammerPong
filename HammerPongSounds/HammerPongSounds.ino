@@ -38,7 +38,7 @@ Oscil<COS8192_NUM_CELLS, AUDIO_RATE> aCos3(COS8192_DATA);
 Oscil<COS8192_NUM_CELLS, AUDIO_RATE> aCos4(COS8192_DATA);
 
 // Noise
-Oscil <WHITENOISE8192_NUM_CELLS, AUDIO_RATE> aNoise1(WHITENOISE8192_DATA); // audio noise
+//Oscil <WHITENOISE8192_NUM_CELLS, AUDIO_RATE> aNoise1(WHITENOISE8192_DATA); // audio noise
 
 StateVariable <LOWPASS> svf;
 
@@ -60,18 +60,18 @@ void handleControlChange(byte channel, byte number, byte value)
 
 void setup(){
   startMozzi(64); // a literal control rate here
+  
+  Q16n16 f1 = Q16n16_mtof(Q16n0_to_Q16n16(48));
 
   // set Oscils with chosen frequencies
-  aCos1.setFreq(50.0f);
-  aCos2.setFreq(50.0f);
-  aCos3.setFreq(100.0f);
-  aCos4.setFreq(101.0f);
+  aCos1.setFreq_Q16n16(f1);
+  aCos2.setFreq_Q16n16(f1);
   
   
-  aNoise1.setFreq(2);
+  //aNoise1.setFreq(2);
   
-  svf.setResonance(150);
-  svf.setCentreFreq(1200);
+  //svf.setResonance(150);
+  //svf.setCentreFreq(1200);
   
   usbMIDI.setHandleControlChange(handleControlChange);
 }
@@ -89,6 +89,6 @@ void updateControl(){
 
 
 int updateAudio(){
-  int asig = aCos1.next() + aCos2.next() + aCos3.next() + aCos4.next();
-  return (asig>>2);// + svf.next(aNoise1.next()))>>1;
+  int asig = aCos1.next() + aCos2.next();// + aCos3.next() + aCos4.next();
+  return (asig>>1);// + svf.next(aNoise1.next()))>>1;
 }

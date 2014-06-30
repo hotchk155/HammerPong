@@ -1,8 +1,14 @@
+/////////////////////////////////////////////////////////////////////
+//
+// CLASS TO CONTROL FRONT PANEL LIGHTS
+//
+/////////////////////////////////////////////////////////////////////
 #ifndef __LIGHTS_H__
 #define __LIGHTS_H__
 
 class CLights
 {
+  // Pin definitions
   enum {
     P_DAT_2  = 12,
     P_SH     = 11,
@@ -11,8 +17,9 @@ class CLights
     P_DAT_1  = 8
   };
 
+  // Define the bits in the output data that correspond to each light
   enum {
-    L_V0 = 0x0002,
+    L_V0 = 0x0002,  // Left side vertical strip, numbered from bottom
     L_V1 = 0x0004,
     L_V2 = 0x0008,
     L_V3 = 0x0010,
@@ -20,13 +27,13 @@ class CLights
     L_V5 = 0x0040,
     L_V6 = 0x0080,
     
-    L_H0 = 0x1000,
+    L_H0 = 0x1000,  // Left side horizontal strip, numbered from left to right
     L_H1 = 0x0800,
     L_H2 = 0x0400,
     L_H3 = 0x0200,
     L_H4 = 0x0100,
     
-    R_V6 = 0x0100,
+    R_V6 = 0x0100,  // Right side vertical strip, numbered from bottom
     R_V5 = 0x0200,
     R_V4 = 0x0400,
     R_V3 = 0x0800,
@@ -34,13 +41,13 @@ class CLights
     R_V1 = 0x2000,
     R_V0 = 0x4000,
     
-    R_H0 = 0x0008,
+    R_H0 = 0x0008,  // Right side horizontal strip, numbered from right to left
     R_H1 = 0x0010,
     R_H2 = 0x0020,
     R_H3 = 0x0040,
     R_H4 = 0x0080,
     
-    R_BUTTON = 0x0004
+    R_BUTTON = 0x0004  // Reset button (addressed via right hand strip)
   
   };
 
@@ -48,8 +55,15 @@ class CLights
   unsigned int stateLeft;
   unsigned int stateRight;
   
+  // Running light sequence (if any) and additonal state variables for sequencing
+  int sequenceType;
+  unsigned long ticksPeriod;
+  unsigned long nextTick;
+  int counter;
+  int fade;
+  
   ////////////////////////////////////////////////////////////////////////
-  // Internal refresh function
+  // Send data to the lights
   void refresh()
   {
     unsigned int mask = 0x8000;
@@ -130,7 +144,22 @@ class CLights
     }
   }
 
-public:  
+public:
+
+  ////////////////////////////////////////////////////////////////////////
+  // Set of defined light sequences
+  enum 
+  {
+    NO_SEQUENCE,
+    TESTING,
+    SLOW_RISE_BOTH_SIDES,
+    FAST_FALL_BOTH_SIDES,
+    SCORE,
+    VICTORY_LEFT,
+    VICTORY_RIGHT,
+    BLINK_RESET_BUTTON
+  };
+
   ////////////////////////////////////////////////////////////////////////
   // One off setup
   void setup()
@@ -141,10 +170,7 @@ public:
     pinMode(P_ST, OUTPUT);
     pinMode(P_OE, OUTPUT);
     digitalWrite(P_OE, LOW);
-    stateLeft = 0;
-    stateRight = 0;
-    refresh();
-    setBrightness(255);
+    sequence(NO_SEQUENCE);
   }
   
   ////////////////////////////////////////////////////////////////////////
@@ -156,6 +182,8 @@ public:
     refresh();
   }
   
+  ////////////////////////////////////////////////////////////////////////
+  // Set left and right states individually
   void setBoth(unsigned int left, unsigned int right)
   {
     setLeft(left);
@@ -175,12 +203,16 @@ public:
   }
   
   ////////////////////////////////////////////////////////////////////////
+  // Set brightness of all the yellow lights (0-255)
   void setBrightness(byte d)
   {
     analogWrite(P_OE, 255-d);
   }
   
   ////////////////////////////////////////////////////////////////////////
+  // Set a "stack" of N lights starting from bottom of the vertical strip
+  // and extending along the horizontal strip to the centre. The state of
+  // left and right side are mirrored
   void setStack(int len)
   {
     switch(len)
@@ -200,8 +232,137 @@ public:
       default: setSymmetrical(0);     
     }    
   }
+  
+  ////////////////////////////////////////////////////////////////////////
+  // Start a new sequence of lights
+  void sequence(int s)
+  {
+    sequenceType = s;
+    switch(sequenceType)
+    {
+      case NO_SEQUENCE:
+        setBrightness(255);      
+        setBoth(0,0);
+        ticksPeriod = 1000;
+        break;         
+      case SLOW_RISE_BOTH_SIDES:
+        counter = 0;
+        setBrightness(200);      
+        ticksPeriod = 100;
+        break;
+      case FAST_FALL_BOTH_SIDES:
+        if(counter > 12 || counter < 0)
+          counter = 12;
+        setBrightness(200);      
+        ticksPeriod = 20;
+        break;
+      case SCORE:
+        counter = 0;
+        fade=255;
+        setBrightness(255);      
+        ticksPeriod = 20;
+        break;
+      case VICTORY_LEFT:
+      case VICTORY_RIGHT:
+        counter = 0;
+        setBrightness(200);
+        ticksPeriod = 50;
+        break;
+      case BLINK_RESET_BUTTON:
+        counter = 0;
+        setBrightness(255);
+        ticksPeriod = 50;
+        break;
+      case TESTING:
+        counter = 0;
+        setBrightness(255);
+        ticksPeriod = 50;
+        break;
+    }
+  }
+  
+  ////////////////////////////////////////////////////////////////////////
+  // Run the sequence
+  void run(unsigned long ticks)
+  {
+    unsigned int b;
+    if(!ticks || ticks >= nextTick)
+    {
+      switch(sequenceType)
+      {
+      case SLOW_RISE_BOTH_SIDES:
+        if(counter++ < 12)
+          setStack(counter);        
+        else
+          sequence(NO_SEQUENCE);
+        break;
+      case FAST_FALL_BOTH_SIDES:
+        if(counter-- > 0)
+          setStack(counter);        
+        else
+          sequence(NO_SEQUENCE);
+        break;
+      case SCORE:
+        if(counter < 10)
+        {
+          if(counter&1)
+            setStack(12);
+          else
+            setStack(0);          
+          ++counter;
+        }
+        else if(fade > 0)
+        {
+            setStack(12);
+            setBrightness(fade);        
+            fade>>=1;
+        }
+        else
+        {
+            sequence(NO_SEQUENCE);
+        }
+        break;
+      case VICTORY_LEFT:
+      case VICTORY_RIGHT:
+        switch(counter % 7)        
+        {          
+          case 0: b=0b000001000000; break;
+          case 1: b=0b000000100000; break;
+          case 2: b=0b000000010000; break;
+          case 3: b=0b000000001000; break;
+          case 4: b=0b000000000100; break;
+          case 5: b=0b000000000010; break;
+          case 6: b=0b000000000001; break;
+        }
+        switch(counter % 5)        
+        {          
+          case 0: b|=0b100000000000; break;
+          case 1: b|=0b010000000000; break;
+          case 2: b|=0b001000000000; break;
+          case 3: b|=0b000100000000; break;
+          case 4: b|=0b000010000000; break;
+        }
+        if(VICTORY_LEFT==sequenceType)
+          setBoth(b,0);
+        else
+          setBoth(0,b);
+        setButton(counter&0x8);
+        counter++;
+        break;
+      case BLINK_RESET_BUTTON:
+        setButton(counter&0x8);
+        counter++;
+        break;
+      case TESTING:
+        setLeft((unsigned int)1<<(11-counter%12));
+        setRight((unsigned int)1<<(counter%12));
+        setButton(counter&0x8);
+        setBrightness(3+28*(counter%10));
+        break;
+      }    
+    }
+    nextTick = ticks + ticksPeriod;
+  }  
 };  
   
-extern CLights Lights;
-
 #endif // __LIGHTS_H__

@@ -6,7 +6,7 @@ class CAnimation
   public:
     virtual void setup() = 0;
     virtual void run(unsigned long ticks) = 0;
-    virtual void render() = 0;
+    virtual void render(CStrip& Strip) = 0;
 };
 
 
@@ -84,7 +84,7 @@ public:
       nextEvent = ticks + 10;
     }
   }
-  void render()
+  void render(CStrip& Strip)
   {
     for(int i=0; i<DROPS_MAX; ++i)
     {

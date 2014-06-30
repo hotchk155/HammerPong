@@ -3,6 +3,7 @@
 
 class CDigits
 {
+  ////////////////////////////////////////////////////////////////////////
   enum {
     P_DAT1  = 2,
     P_DAT2  = 6,
@@ -15,9 +16,21 @@ class CDigits
   // The content of the display
   byte stateLeft;
   byte stateRight;
-
+  int counter;
+  int sequenceType;
+  int ticksPeriod;
+  unsigned long nextTick;
+  
 public:
   ////////////////////////////////////////////////////////////////////////
+  // Segment bits
+  //
+  //    AAA
+  //   F   B
+  //    GGG
+  //   E   C
+  //    DDD
+  //
   enum {
     SEG_A = 0x01,
     SEG_B = 0x02,
@@ -29,13 +42,7 @@ public:
   };
   
   ////////////////////////////////////////////////////////////////////////
-  //
-  //    AAA
-  //   F   B
-  //    GGG
-  //   E   C
-  //    DDD
-  //
+  // Character definitions
   enum {
     CH_0 = SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F,
     CH_1 = SEG_B|SEG_C,
@@ -49,9 +56,22 @@ public:
     CH_9 = SEG_A|SEG_B|SEG_C|SEG_D|SEG_F|SEG_G
   };
 
-public:
   ////////////////////////////////////////////////////////////////////////
-  // Implementation function to refresh the displays
+  // Behaviour sequences
+  enum
+  {
+      NO_SEQUENCE,
+      TESTING,
+      BLINK_LEFT,       
+      BLINK_RIGHT,
+      BLINK_LEFT_DIM_RIGHT,
+      BLINK_RIGHT_DIM_LEFT,
+      MEANDER
+  };
+
+public:
+  
+  ////////////////////////////////////////////////////////////////////////
   void refresh()
   {
     byte mask = 0x80;
@@ -69,28 +89,25 @@ public:
   }
   
   ////////////////////////////////////////////////////////////////////////
-  // Show a single digit number on the left or the right display
-  void set(byte pos, int n)
+  byte mapDigit(byte digit)
   {
-    byte &buf=pos? stateRight : stateLeft;
-    switch(n)
+    switch(digit)
     {
-      case 0: buf=CH_0; break;
-      case 1: buf=CH_1; break;
-      case 2: buf=CH_2; break;
-      case 3: buf=CH_3; break;
-      case 4: buf=CH_4; break;
-      case 5: buf=CH_5; break;
-      case 6: buf=CH_6; break;
-      case 7: buf=CH_7; break;
-      case 8: buf=CH_8; break;
-      case 9: buf=CH_9; break;
-      default: buf=0; break;
+      case 0: return CH_0; 
+      case 1: return CH_1; 
+      case 2: return CH_2; 
+      case 3: return CH_3; 
+      case 4: return CH_4; 
+      case 5: return CH_5; 
+      case 6: return CH_6; 
+      case 7: return CH_7; 
+      case 8: return CH_8; 
+      case 9: return CH_9; 
     }
+    return 0;
   }
   
   ////////////////////////////////////////////////////////////////////////
-  // One-off setup
   void setup()
   {
     pinMode(P_DAT1, OUTPUT);
@@ -102,49 +119,120 @@ public:
     digitalWrite(P_DAT2, LOW);
     digitalWrite(P_SH, LOW);
     digitalWrite(P_ST, LOW);
-  
-    stateLeft = 0;
-    stateRight = 0;
-    refresh();
+
+    sequence(NO_SEQUENCE);  
   }
   
   ////////////////////////////////////////////////////////////////////////
   // Show a 2 digit number
-  void setCounter(int n)
+  void set(int n)
   {
     n%=100;
-    setLeft(n/10);
-    setRight(n%10);
+    stateLeft = mapDigit(n/10);
+    stateRight = mapDigit(n%10);
+    refresh();
+    
   }
-  void setLeft(int left)
+  
+  ////////////////////////////////////////////////////////////////////////
+  // Show 2 single digit numbers
+  void set(int left, int right)
   {
-    set(0,left);
+    stateLeft = mapDigit(left);
+    stateRight = mapDigit(right);
     refresh();
   }
-  void setRight(int right)
-  {
-    set(1,right);
-    refresh();
-  }
-  void setBoth(int left, int right)
-  {
-    set(0,left);
-    set(1,right);
-    refresh();
-  }
+  
+  ////////////////////////////////////////////////////////////////////////
+  // Set any combination of segments
   void setRaw(int left, int right)
   {
     stateLeft = left;
     stateRight = right;
     refresh();
   }
+  
+  ////////////////////////////////////////////////////////////////////////
+  // Set brightness of each display
   void setBrightness(byte left, byte right)
   {
     analogWrite(P_OE1, 255-left);
     analogWrite(P_OE2, 255-right);
   }
-};
 
-extern CDigits Digits;
+  ////////////////////////////////////////////////////////////////////////
+  // Start a new sequence of lights
+  void sequence(int s)
+  {
+    counter = 0;
+    sequenceType = s;
+    switch(sequenceType)
+    {
+      case NO_SEQUENCE:
+        setBrightness(255,255);      
+        setRaw(0,0);
+        ticksPeriod = 1000;
+        break;         
+      case BLINK_LEFT:
+      case BLINK_RIGHT:
+      case BLINK_LEFT_DIM_RIGHT:
+      case BLINK_RIGHT_DIM_LEFT:
+        ticksPeriod = 10;
+      break;
+      
+      case MEANDER:
+        ticksPeriod = 100;
+        break;        
+      case TESTING:
+        ticksPeriod = 10;
+        break;
+    }
+  }
+  
+  ////////////////////////////////////////////////////////////////////////
+  // Run the sequence
+  void run(unsigned long ticks)
+  {
+    if(!ticks || ticks >= nextTick)
+    {
+      byte br0;
+      byte br1=255;
+      switch(sequenceType)
+      {
+        case BLINK_LEFT_DIM_RIGHT:
+        case BLINK_RIGHT_DIM_LEFT:
+          br1 = 20;
+        case BLINK_LEFT:
+        case BLINK_RIGHT:
+          br0 = 127+125.0*cos(counter/10.0);
+          if(sequenceType == BLINK_LEFT || sequenceType == BLINK_LEFT_DIM_RIGHT)
+            setBrightness(br0,br1);
+          else
+            setBrightness(br1,br0);
+          break;
+        
+        case MEANDER:
+          switch(counter%8)
+          {  
+           case 0: setRaw(SEG_A,SEG_F); break;
+           case 1: setRaw(SEG_B,SEG_G); break;
+           case 2: setRaw(SEG_G,SEG_C); break;
+           case 3: setRaw(SEG_E,SEG_D); break;
+           case 4: setRaw(SEG_D,SEG_E); break;
+           case 5: setRaw(SEG_C,SEG_G); break;
+           case 6: setRaw(SEG_G,SEG_B); break;
+           case 7: setRaw(SEG_F,SEG_A); break;
+          }  
+          break;        
+        case TESTING:
+          set(counter/10);
+          setBrightness(255-28*(counter%10),3+28*(counter%10));
+          break;          
+      }
+      ++counter;
+      nextTick = ticks + ticksPeriod;
+    }  
+  }
+};
 
 #endif //__DIGITS_H__

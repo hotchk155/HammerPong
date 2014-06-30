@@ -1,3 +1,5 @@
+/////////////////////////////////////////////////////////////////////
+// Manages a "trail of sparks" particle system
 #ifndef __TRAILS_H__
 #define __TRAILS_H__
 
@@ -59,7 +61,7 @@ public:
       }          
     }
   }
-  void render()
+  void render(CStrip& Strip)
   {
       for(int i=0; i<MAX_SPARKS; ++i)
       {
