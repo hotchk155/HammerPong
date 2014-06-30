@@ -48,7 +48,8 @@ class CPuck
     SERVE_RIGHT,
     IN_PLAY,
     MISSED_LEFT,
-    MISSED_RIGHT
+    MISSED_RIGHT,
+    HIDDEN
   };
   enum {
     LEFT_TO_RIGHT = 1,
@@ -153,6 +154,7 @@ public:
           
       case MISSED_LEFT:
       case MISSED_RIGHT:  
+      case HIDDEN:
           nextTick = ticks + 1000;             
           break;
       }
@@ -161,7 +163,11 @@ public:
       // Prepare the set of row indexes for each of the 
       // 3 strip columns displaying the puck
       stripRow[0] = stripRow[1] = stripRow[2] = -1;
-      if(facing == LEFT_TO_RIGHT) 
+      if(state == HIDDEN)
+      {
+        // wont get shown
+      }
+      else if(facing == LEFT_TO_RIGHT) 
       {
         // Puck is facing as if moving from the LEFT to the RIGHT
         if(pos < MIN_POS_LEFT)
@@ -341,7 +347,11 @@ public:
     }
   }
   
-  
+  ////////////////////////////////////////////////////////////////////
+  void hide()
+  {
+    state = HIDDEN;
+  }  
 };
 
 #endif //  __PUCK_H__

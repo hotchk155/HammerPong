@@ -17,7 +17,8 @@ class CPlayer
       IDLE,
       EXPAND,
       CONTRACT,
-      EXPLODED
+      EXPLODED,
+      HIDDEN
     };
     
     int which;
@@ -128,7 +129,7 @@ class CPlayer
         topRow = 0;
         
       }
-      else if(state != EXPLODED)
+      else if(state != EXPLODED && state != HIDDEN)
       {
         byte intensity = 0x2;
         float row = bottomRow;
@@ -196,6 +197,10 @@ class CPlayer
     {
       if(state == EXPLODED)
         state = IDLE;
+    }
+    void hide()
+    {
+      state = HIDDEN;
     }
 };
 

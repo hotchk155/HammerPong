@@ -11,7 +11,6 @@
 //
 // INCLUDE FILES
 //
-#include "Midi.h"
 #include "Lights.h"
 #include "Digits.h"
 #include "Strip.h"
@@ -54,6 +53,7 @@ class CGame
   int rallyCount;         // length of current rally
   int tickPeriod;         // state machine run period (ticks) 
   unsigned long nextTick; // scheduled time of next run
+  int serveTimeout;
   float wheelPos;
   
 //  CMIDI       MIDI;        // MIDI comms handler
@@ -72,6 +72,7 @@ public:
     PlayerLeft(CPlayer::LEFT, CPlayer::BLUE, CStrip::MIN_LEFT),
     PlayerRight(CPlayer::RIGHT, CPlayer::GREEN, CStrip::MIN_RIGHT)
   {
+    
   }
 
   ////////////////////////////////////////////////////////////////////////////
@@ -79,7 +80,6 @@ public:
   {
     pinMode(P_SWING_LEFT, INPUT_PULLUP);
     pinMode(P_SWING_RIGHT, INPUT_PULLUP);
-//    MIDI.setup();
     Digits.setup();
     Lights.setup();
     Strip.setup();
@@ -98,7 +98,7 @@ public:
     {
       case BEGIN_STATE:
         Serial.println("BEGIN_STATE");
-        servingPlayer = random(2) ? CPlayer::LEFT : CPlayer::RIGHT;
+        servingPlayer = (analogRead(0)&1) ? CPlayer::LEFT : CPlayer::RIGHT;
         scoreLeft = 0;
         scoreRight = 0;
         tickPeriod = 200;
@@ -116,6 +116,7 @@ public:
         else          
           Digits.sequence(CDigits::BLINK_LEFT);
         tickPeriod = 1;
+        serveTimeout = 10000; 
         break;
 
       case PLAYING_STATE:
@@ -146,12 +147,15 @@ public:
           Lights.sequence(CLights::VICTORY_RIGHT);
           Digits.sequence(CDigits::BLINK_RIGHT_DIM_LEFT);
         }
-        tickPeriod = 100;
+        tickPeriod = 20000; 
         break;
 
       case ATTRACT_STATE:
+        PlayerLeft.hide();
+        PlayerRight.hide();
+        Puck.hide();
         Digits.sequence(CDigits::MEANDER);
-        wheelPos = 0;
+        wheelPos = random(255);
         tickPeriod = 50;
         break;
     }
@@ -189,6 +193,8 @@ public:
         case SERVING_STATE:
           if(Puck.hitTest(PlayerLeft, PlayerRight))
               transition(PLAYING_STATE);
+          if(--serveTimeout <= 0)
+              transition(ATTRACT_STATE);
           break;
           
         //////////////////////////////////////////////////////////////////
@@ -230,6 +236,7 @@ public:
         //////////////////////////////////////////////////////////////////
         // Game over
         case GAMEOVER_STATE:
+          transition(ATTRACT_STATE);
           break;
         
         //////////////////////////////////////////////////////////////////
