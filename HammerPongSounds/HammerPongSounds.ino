@@ -1,94 +1,88 @@
-/*  Plays a fluctuating ambient wash using pairs
-    of slightly detuned oscillators, following an example
-    from Miller Puckette's Pure Data manual.
-  
-    The detune frequencies are modified by chance in
-    updateControl(), and the outputs of 14 audio
-    oscillators are summed in updateAudio().
-  
-    Demonstrates the use of fixed-point Q16n16
-    format numbers, mtof() for converting midi note
-    values to frequency, and xorshift96() for random numbers.
-  
-    Circuit: Audio output on digital pin 9 (on a Uno or similar), or 
-    check the README or http://sensorium.github.com/Mozzi/
-  
-    Mozzi help/discussion/announcements:
-    https://groups.google.com/forum/#!forum/mozzi-users
-  
-    Tim Barrass 2012.
-    This example code is in the public domain.
-*/
+#include "Arduino.h"
+#define P_OUT 14
+#define P_LED 11
 
-#include <MozziGuts.h>
-#include <Oscil.h>
-#include <tables/whitenoise8192_int8.h>
-#include <tables/cos8192_int8.h>
-#include <mozzi_rand.h>
-#include <mozzi_midi.h>
-#include <mozzi_fixmath.h> // for Q16n16 fixed-point fractional number type
-#include <StateVariable.h>
-
-// Beating sines 1
-Oscil<COS8192_NUM_CELLS, AUDIO_RATE> aCos1(COS8192_DATA);
-Oscil<COS8192_NUM_CELLS, AUDIO_RATE> aCos2(COS8192_DATA);
-
-// Beating sines 2
-Oscil<COS8192_NUM_CELLS, AUDIO_RATE> aCos3(COS8192_DATA);
-Oscil<COS8192_NUM_CELLS, AUDIO_RATE> aCos4(COS8192_DATA);
-
-// Noise
-//Oscil <WHITENOISE8192_NUM_CELLS, AUDIO_RATE> aNoise1(WHITENOISE8192_DATA); // audio noise
-
-StateVariable <LOWPASS> svf;
-
-
-void handleControlChange(byte channel, byte number, byte value)
+enum 
 {
-  if(1==number)
+  SOUND_NONE,
+  SOUND_STRIKE
+};
+int whichSound = SOUND_NONE;
+int count = 0;
+unsigned long ms = 0;
+unsigned long nextTick = 0;
+
+void startSound(int which)
+{
+  whichSound = which;
+  count = 0;
+  nextTick = 0;
+}
+
+void runSounds(unsigned long ms)
+{
+  switch(whichSound)
   {
-    aCos3.setFreq(100.0f + 2*value);
-    aCos4.setFreq(101.0f + 2*value);  
+  case SOUND_NONE:    
+    noTone(P_OUT);
+    nextTick = ms + 1000;
+    break;
+  case SOUND_STRIKE:
+      switch(count)
+      {
+        case 0:
+          tone(P_OUT, 200);
+          nextTick = ms + 100;
+          break;        
+        case 1:
+          tone(P_OUT, 400);
+          nextTick = ms + 100;
+          break;        
+        case 2:
+          whichSound = SOUND_NONE;
+          break;
+      }      
   }
-  if(70==number)
+  count++;
+}
+
+void setup()
+{
+  Serial.begin(9600);
+  pinMode(P_OUT,OUTPUT);
+  pinMode(P_LED,OUTPUT);
+  ms=0;
+}
+
+unsigned long q=0;
+byte ledState=0;
+void loop()
+{
+  unsigned long newMillis = millis();
+  if(newMillis >= ms)
+    ms = newMillis;
+  else
+    ms = 0;
+    
+  if(!ms || nextTick <= ms)
+   runSounds(ms);
+
+  
+  if(q<ms)
   {
-    aCos1.setFreq(50.0f + 2*value);
-    aCos2.setFreq(50.0f + 2*value);  
+     digitalWrite(P_LED,ledState);
+     q=ms+500;
+     ledState=!ledState;
   }
   
-}
-
-void setup(){
-  startMozzi(64); // a literal control rate here
-  
-  Q16n16 f1 = Q16n16_mtof(Q16n0_to_Q16n16(48));
-
-  // set Oscils with chosen frequencies
-  aCos1.setFreq_Q16n16(f1);
-  aCos2.setFreq_Q16n16(f1);
-  
-  
-  //aNoise1.setFreq(2);
-  
-  //svf.setResonance(150);
-  //svf.setCentreFreq(1200);
-  
-  usbMIDI.setHandleControlChange(handleControlChange);
-}
-
-
-void loop(){
-  audioHook();
-}
-
-
-unsigned int j=0;
-void updateControl(){
-  usbMIDI.read();
-}
-
-
-int updateAudio(){
-  int asig = aCos1.next() + aCos2.next();// + aCos3.next() + aCos4.next();
-  return (asig>>1);// + svf.next(aNoise1.next()))>>1;
+  if(Serial.available())
+  {
+    char ch =Serial.read();
+    switch(ch)
+    {
+      case 'a':
+        startSound(SOUND_STRIKE);
+        break;
+    }
+  }
 }
