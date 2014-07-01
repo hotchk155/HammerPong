@@ -69,6 +69,7 @@ typedef struct
 	byte midiChannel;			// MIDI channel on which to notify this trigger
 	byte midiNote;				// MIDI note on which to notify this trigger
 	byte ledBit;				// LED bit on port C
+	byte outBit;				// output signal bit on port A
 	byte state;					// Input state
 	unsigned int thisMaxInput;	// Max ADC input on this trigger cycle
 	unsigned long timeout;		// Timeout at which to move to next state
@@ -147,14 +148,17 @@ void midiNote(byte chan, byte note, byte vel)
 
 ////////////////////////////////////////////////////////////
 // INITIALISE PORT DATA
-void initInput(INPUT_PORT *pInput, byte inputMask, byte chan, byte note, byte ledBit)
+void initInput(INPUT_PORT *pInput, byte inputMask, byte chan, byte note, byte ledBit, byte outBit)
 {
 	pInput->adcInputMask = inputMask;
 	pInput->midiChannel = chan;
 	pInput->midiNote = note;
 	pInput->ledBit = ledBit;
+	pInput->outBit = outBit;
 	pInput->state = INPUT_LISTENING;
 	pInput->timeout = 0;
+	
+	trisa |= outBit;
 }
 
 ////////////////////////////////////////////////////////////
@@ -198,6 +202,11 @@ void handleAdcResult(INPUT_PORT *pInput, unsigned int adcResult)
 				// turn on the LED
 				portc |= pInput->ledBit;
 				
+				// ensure the output pin is LOW and set it as OUTPUT
+				// driving the pin low
+				trisa &= ~pInput->outBit;
+				
+				
 				// set up dead time			
 				pInput->timeout = milliseconds + INPUT_DEAD_TIME;
 				pInput->state = INPUT_BLOCKED;
@@ -213,6 +222,11 @@ void handleAdcResult(INPUT_PORT *pInput, unsigned int adcResult)
 			midiNote(pInput->midiChannel, pInput->midiNote, 0);
 			pInput->state = INPUT_LISTENING;
 			portc &= ~pInput->ledBit;
+			
+			// configure the output pin as INPUT allowing it float (we dont 
+			// drive it high since we can't put 5V on the line to the 5V
+			// intolerant Due input pin. rely on Due's internal weak pullups.
+			trisa |= pInput->outBit;
 		}
 		break;
 	}
@@ -270,7 +284,7 @@ void main()
 	// configure io
 	trisa =  0b00010111;              	
     trisc =  0b00111000;              
-	ansela = 0b00010111;
+	ansela = 0b00010100;
 	anselc = 0b00000000;
 	porta=0;
 	portc=0;
@@ -302,8 +316,8 @@ void main()
 	init_usart();
 
 	// initialise the inputs
-	initInput(&inputPort[0], ANA_3, 0, 60, (1<<1));
-	initInput(&inputPort[1], ANA_7, 0, 61, (1<<2));
+	initInput(&inputPort[0], ANA_3, 0, 60, (1<<1), (1<<0)); // LED on RC1, output on RA0
+	initInput(&inputPort[1], ANA_7, 0, 61, (1<<2), (1<<1)); // LED on RC2, output on RA1
 	adcState = ADC_CONNECT;
 	whichInputPort = 0;					
 	
