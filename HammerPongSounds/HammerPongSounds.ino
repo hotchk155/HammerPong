@@ -93,6 +93,7 @@
 #define P_OUT 14
 #define P_LED 11
 
+#define HWSERIAL Serial1
 enum 
 {
   SOUND_NONE,
@@ -202,6 +203,7 @@ void runSounds(unsigned long ms)
 
 void setup()
 {
+  HWSERIAL.begin(9600);
   Serial.begin(9600);
   pinMode(P_OUT,OUTPUT);
   pinMode(P_LED,OUTPUT);
@@ -229,30 +231,31 @@ void loop()
      ledState=!ledState;
   }
   
+  char ch=0;
   if(Serial.available())
+    ch =Serial.read();
+  else if(HWSERIAL.available())
+    ch =HWSERIAL.read();
+  switch(ch)
   {
-    char ch =Serial.read();
-    switch(ch)
-    {
-      case 'n':
-        startSound(SOUND_NONE);
-        break;
-      case 's':
-        startSound(SOUND_SERVE);
-        break;
-      case 'b':
-        startSound(SOUND_BEGIN);
-        break;
-      case 'r':
-        startSound(SOUND_RETURN);
-        break;
-      case 'w':
-        startSound(SOUND_SCORE);
-        break;
-      case 't':
-        startSound(SOUND_TUNE);
-        break;
-    }
+    case 'n':
+      startSound(SOUND_NONE);
+      break;
+    case 's':
+      startSound(SOUND_SERVE);
+      break;
+    case 'b':
+      startSound(SOUND_BEGIN);
+      break;
+    case 'r':
+      startSound(SOUND_RETURN);
+      break;
+    case 'w':
+      startSound(SOUND_SCORE);
+      break;
+    case 't':
+      startSound(SOUND_TUNE);
+      break;
   }
 }
 
