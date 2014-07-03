@@ -157,7 +157,8 @@ public:
     SCORE,
     VICTORY_LEFT,
     VICTORY_RIGHT,
-    BLINK_RESET_BUTTON
+    BLINK_RESET_BUTTON,
+    MEANDER
   };
 
   ////////////////////////////////////////////////////////////////////////
@@ -238,11 +239,10 @@ public:
   void sequence(int s)
   {
     sequenceType = s;
+    nextTick=0;
     switch(sequenceType)
     {
       case NO_SEQUENCE:
-        setBrightness(255);      
-        setBoth(0,0);
         ticksPeriod = 1000;
         break;         
       case SLOW_RISE_BOTH_SIDES:
@@ -254,7 +254,7 @@ public:
         if(counter > 12 || counter < 0)
           counter = 12;
         setBrightness(200);      
-        ticksPeriod = 20;
+        ticksPeriod = 35;
         break;
       case SCORE:
         counter = 0;
@@ -278,6 +278,11 @@ public:
         setBrightness(255);
         ticksPeriod = 50;
         break;
+      case MEANDER:
+        counter = 0;
+        setBrightness(100);
+        ticksPeriod = 50;
+        break;
     }
   }
   
@@ -286,8 +291,13 @@ public:
   void run(unsigned long ticks)
   {
     unsigned int b;
-    if(!ticks || ticks >= nextTick)
+//    Serial.print(ticks, DEC);
+//    Serial.print(" ");
+//    Serial.print(nextTick, DEC);
+//    Serial.println(" ");
+    if(!ticks || nextTick <= ticks)
     {
+//    Serial.println("lightsrun");
       switch(sequenceType)
       {
       case SLOW_RISE_BOTH_SIDES:
@@ -311,15 +321,16 @@ public:
             setStack(0);          
           ++counter;
         }
-        else if(fade > 0)
+        else if(fade > 1)
         {
             setStack(12);
             setBrightness(fade);        
-            fade>>=1;
+            fade/=2.0;
         }
         else
         {
-            sequence(NO_SEQUENCE);
+          setBrightness(0);        
+          sequence(NO_SEQUENCE);
         }
         break;
       case VICTORY_LEFT:
@@ -358,10 +369,42 @@ public:
         setRight((unsigned int)1<<(counter%12));
         setButton(counter&0x8);
         setBrightness(3+28*(counter%10));
+        counter++;
         break;
+      case MEANDER:
+        if(counter<12)
+        {
+          setLeft(1<<(counter));
+          setRight(0);
+          refresh();
+        }
+        else
+        if(counter<24)
+        {
+          setLeft(0);
+          setRight(1<<(23-counter));
+          refresh();
+        }
+        else
+        if(counter<35)
+        {
+          setLeft(0);
+          setRight(1<<(counter-23));
+          refresh();
+        }
+        else
+        if(counter<46)
+        {
+          setLeft(1<<(46-counter));
+          setRight(0);
+          refresh();
+        }
+        if(++counter >=46)
+          counter=0;
+        setButton(counter&0x4);
       }    
+      nextTick = ticks + ticksPeriod;
     }
-    nextTick = ticks + ticksPeriod;
   }  
 };  
   

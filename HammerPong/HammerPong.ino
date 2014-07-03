@@ -48,6 +48,7 @@ void setup()
   timeValue = &(TC2->TC_CHANNEL[0].TC_CV);  
   timeReset = &(TC2->TC_CHANNEL[0].TC_CCR);
   *timeReset = TC_CCR_CLKEN | TC_CCR_SWTRG;     
+
 }
 
 /////////////////////////////////////////////////////////////////////

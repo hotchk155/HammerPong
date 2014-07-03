@@ -128,8 +128,14 @@ public:
   void set(int n)
   {
     n%=100;
-    stateLeft = mapDigit(n/10);
-    stateRight = mapDigit(n%10);
+    if(n>9)
+      stateLeft = mapDigit(n/10);
+    else 
+      stateLeft = 0;      
+    if(n>0)
+      stateRight = mapDigit(n%10);
+    else
+      stateRight = 0;
     refresh();
     
   }
@@ -170,17 +176,17 @@ public:
     {
       case NO_SEQUENCE:
         setBrightness(255,255);      
-        setRaw(0,0);
         ticksPeriod = 1000;
         break;         
       case BLINK_LEFT:
       case BLINK_RIGHT:
       case BLINK_LEFT_DIM_RIGHT:
       case BLINK_RIGHT_DIM_LEFT:
-        ticksPeriod = 10;
+        ticksPeriod = 200;
       break;
       
       case MEANDER:
+        setBrightness(100,100);
         ticksPeriod = 100;
         break;        
       case TESTING:
@@ -204,7 +210,7 @@ public:
           br1 = 20;
         case BLINK_LEFT:
         case BLINK_RIGHT:
-          br0 = 127+125.0*cos(counter/10.0);
+          br0 = (counter&1) ? 255 : 0;
           if(sequenceType == BLINK_LEFT || sequenceType == BLINK_LEFT_DIM_RIGHT)
             setBrightness(br0,br1);
           else

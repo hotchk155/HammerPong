@@ -21,9 +21,17 @@
 //
 // MACRO DEFS
 //
-#define INITIAL_SPEED 0.5  // initial speed of puck after serve (positions per tick)
-#define REBOUND_SPEED 1.1  // how much the speed increases when the puck is returned
-#define MAX_SCORE  9
+#define INITIAL_SPEED 0.7  // initial speed of puck after serve (positions per tick)
+#define REBOUND_SPEED 1.05  // how much the speed increases when the puck is returned
+#define MAX_SCORE  5
+#define IDLE_TIMEOUT  25000
+
+#define SOUND_BEGIN 'b'
+#define SOUND_SCORE 'w'
+#define SOUND_GAMEOVER 't'
+#define SOUND_RETURN 's'
+#define SOUND_SERVE 'r'
+
 
 //
 // GAME STATE MACHINE CLASS
@@ -32,8 +40,8 @@ class CGame
 {
   enum 
   {
-    P_SWING_LEFT = 23,
-    P_SWING_RIGHT = 25,
+    P_SWING_LEFT = 22,
+    P_SWING_RIGHT = 24
   };
   // STATES
   enum 
@@ -56,7 +64,6 @@ class CGame
   int serveTimeout;
   float wheelPos;
   
-//  CMIDI       MIDI;        // MIDI comms handler
   CDigits     Digits;      // Handler for dual 7-seg score display
   CLights     Lights;      // Handler for console lights
   CStrip      Strip;       // Handler for LED strips
@@ -78,8 +85,9 @@ public:
   ////////////////////////////////////////////////////////////////////////////
   void setup()
   {
-    pinMode(P_SWING_LEFT, INPUT_PULLUP);
-    pinMode(P_SWING_RIGHT, INPUT_PULLUP);
+    Serial.begin(9600);
+    pinMode(P_SWING_LEFT, INPUT);
+    pinMode(P_SWING_RIGHT, INPUT);
     Digits.setup();
     Lights.setup();
     Strip.setup();
@@ -91,6 +99,12 @@ public:
     transition(BEGIN_STATE);
   }
 
+  ////////////////////////////////////////////////////////////////////////////
+  void sound(char s)
+  {
+    Serial.write(s);
+  }
+  
   ////////////////////////////////////////////////////////////////////////////
   void transition(int newState)
   {
@@ -114,7 +128,7 @@ public:
         else          
           Digits.sequence(CDigits::BLINK_LEFT);
         tickPeriod = 1;
-        serveTimeout = 10000; 
+        serveTimeout = IDLE_TIMEOUT; 
         break;
 
       case PLAYING_STATE:
@@ -123,15 +137,19 @@ public:
         Digits.sequence(CDigits::NO_SEQUENCE);
         Lights.sequence(CLights::FAST_FALL_BOTH_SIDES);
         Puck.startPlay(INITIAL_SPEED);
+        sound(SOUND_SERVE);
         tickPeriod = 1;
         break;
         
       case SCORED_STATE:
+        sound(SOUND_SCORE);
         Lights.sequence(CLights::SCORE);
-        tickPeriod = 2000;
+        tickPeriod = 3000;
         break;
         
       case GAMEOVER_STATE:
+        sound(SOUND_GAMEOVER);
+        Digits.set(scoreLeft, scoreRight);
         if(scoreLeft > scoreRight)
         {
           Lights.sequence(CLights::VICTORY_LEFT);
@@ -142,7 +160,7 @@ public:
           Lights.sequence(CLights::VICTORY_RIGHT);
           Digits.sequence(CDigits::BLINK_RIGHT_DIM_LEFT);
         }
-        tickPeriod = 20000; 
+        tickPeriod = IDLE_TIMEOUT; 
         break;
 
       case ATTRACT_STATE:
@@ -150,8 +168,9 @@ public:
         PlayerRight.hide();
         Puck.hide();
         Digits.sequence(CDigits::MEANDER);
+        Lights.sequence(CLights::MEANDER);
         wheelPos = random(255);
-        tickPeriod = 50;
+        tickPeriod = 30;
         break;
     }
     state = newState;
@@ -161,9 +180,9 @@ public:
   ////////////////////////////////////////////////////////////////////////////
   void run(unsigned long ticks)
   {
-    if(!digitalRead(P_SWING_LEFT))
+    if(digitalRead(P_SWING_LEFT))
       PlayerLeft.swing();
-    if(!digitalRead(P_SWING_RIGHT))
+    if(digitalRead(P_SWING_RIGHT))
       PlayerRight.swing();
     
     PlayerLeft.run(ticks);
@@ -213,6 +232,7 @@ public:
             }
             else if(Puck.hitTest(PlayerLeft, PlayerRight))
             {              
+                sound(SOUND_RETURN);
                 Puck.reverse(REBOUND_SPEED);
                 Digits.set(++rallyCount);
             }             
@@ -237,8 +257,8 @@ public:
         //////////////////////////////////////////////////////////////////
         // Nobody playing, do some other stuff        
         case ATTRACT_STATE:
-          Sparks.add(random(6), 150, (float)random(25)/50.0, wheelPos, random(200));
-          wheelPos+=0.1;
+          Sparks.add(random(6), 150, (float)random(50)/50.0, wheelPos, random(255));
+          wheelPos+=0.05;
           if(wheelPos >= 255)
             wheelPos = 0;
           break;

@@ -49,9 +49,9 @@ public:
     BASE_COL_RIGHT = 3    
   };
   enum {
-    MIN_LEFT = 2,
+    MIN_LEFT = 3,
     MAX_LEFT = 150,
-    MIN_RIGHT = 2,
+    MIN_RIGHT = 3,
     MAX_RIGHT = 150
   };  
   byte buffer[NUMBUFFERS][BUFSSIZE]; // The huge display buffer!

@@ -96,6 +96,7 @@
 enum 
 {
   SOUND_NONE,
+  SOUND_BEGIN,
   SOUND_SERVE,
   SOUND_RETURN,
   SOUND_SCORE,
@@ -106,7 +107,11 @@ int count = 0;
 unsigned long ms = 0;
 unsigned long nextTick = 0;
 
-char * tune = "c.e.gag...gggggg";
+char * tune = 
+//1---2---3---4---
+"c.e.gag...g-...."
+"a.agage...e-....";
+
 void startSound(int which)
 {
   whichSound = which;
@@ -122,6 +127,17 @@ void runSounds(unsigned long ms)
     noTone(P_OUT);
     nextTick = ms + 1000;
     break;
+  case SOUND_BEGIN:    
+      if(count<30)
+      {
+          tone(P_OUT, 200+10*count);
+          nextTick = ms + 25;
+      }
+      else
+      {      
+          whichSound = SOUND_NONE;
+      }      
+      break;
   case SOUND_SERVE:
       switch(count)
       {
@@ -166,6 +182,7 @@ void runSounds(unsigned long ms)
           whichSound = SOUND_NONE;
           break;
       }      
+      break;
   case SOUND_TUNE:
       switch(tune[count])
       {
@@ -174,9 +191,10 @@ void runSounds(unsigned long ms)
          case 'g': tone(P_OUT, NOTE_G4); break;
          case 'a': tone(P_OUT, NOTE_A4); break;
          case '.': noTone(P_OUT); break;
+         case '-': break;
          case '\0': whichSound = SOUND_NONE; break;
       }  
-      nextTick = ms + 200;
+      nextTick = ms + 100;
       break;
   }
   count++;
@@ -221,6 +239,9 @@ void loop()
         break;
       case 's':
         startSound(SOUND_SERVE);
+        break;
+      case 'b':
+        startSound(SOUND_BEGIN);
         break;
       case 'r':
         startSound(SOUND_RETURN);

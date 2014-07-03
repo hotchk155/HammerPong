@@ -86,7 +86,7 @@ public:
   
   void run(unsigned long ticks)
   {
-    if(!ticks || nextTicks < ticks)
+    if(!ticks || nextTicks <= ticks)
     {
       nextTicks = ticks + TICK_PERIOD;
       for(int i=0; i<MAX_SPARKS; ++i)
@@ -99,7 +99,7 @@ public:
           s->iblue = (float)s->blue*s->intensity/255.0;
           s->row -= s->vel;
           s->vel += 0.009;
-          s->intensity *= 0.95;          
+          s->intensity *= 0.96;          
         }
       }          
     }
